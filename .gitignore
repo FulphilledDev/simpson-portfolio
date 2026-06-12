@@ -16,7 +16,7 @@ api/deploy_response.json
 api/publish/
 
 # Dev uploads
-src/PhitDevPortfolio.API/wwwroot/uploads/
+api/src/PhitDevPortfolio.API/wwwroot/uploads/
 
 # EF migrations lock
 *.db
