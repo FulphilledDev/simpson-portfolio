@@ -218,13 +218,14 @@ npm run dev   # http://localhost:3000
 ### .NET API
 ```bash
 cd api
-dotnet run --project src/PhitDevPortfolio.API
-# http://localhost:5000 (see launchSettings.json)
+dotnet run --project src/PhitDevPortfolio.API --launch-profile http
+# http://localhost:5149 | Swagger: http://localhost:5149/swagger
 ```
 
 ### Database (PostgreSQL)
-Using Neon free tier (or local PostgreSQL).  
-Connection string goes in `api/src/PhitDevPortfolio.API/appsettings.Development.json` (gitignored).
+Using **Neon free tier** (us-west-2). Connection string in `appsettings.Development.json` (gitignored).  
+Format: `Host=...;Database=neondb;Username=neondb_owner;Password=...;SSL Mode=Require;Trust Server Certificate=true`  
+⚠️ Npgsql does NOT accept `postgresql://` URI format — must use key=value format.
 
 To create/apply migrations:
 ```bash
@@ -232,8 +233,6 @@ cd api
 dotnet ef migrations add <MigrationName> --project src/PhitDevPortfolio.Infrastructure --startup-project src/PhitDevPortfolio.API
 dotnet ef database update --project src/PhitDevPortfolio.Infrastructure --startup-project src/PhitDevPortfolio.API
 ```
-
-**Initial migration not yet created** — run `dotnet ef migrations add InitialCreate ...` after setting up PostgreSQL connection string.
 
 ---
 
@@ -253,19 +252,47 @@ dotnet ef database update --project src/PhitDevPortfolio.Infrastructure --startu
 
 ---
 
-## What To Do Next
+## What To Do Next (in order)
 
-1. **Set up PostgreSQL** — create a Neon free-tier DB, add connection string to `appsettings.Development.json`, run `dotnet ef migrations add InitialCreate`
-2. **Google OAuth credentials** — create OAuth 2.0 client in Google Cloud Console, add `NEXT_PUBLIC_GOOGLE_CLIENT_ID` to `.env.local` and `Google:ClientId` to API appsettings
-3. **Build `/projects` page** — fetch `GET /api/projects?featuredOnly=false`, render `ProjectCard` components with slug links
-4. **Build `/book` page** — appointment booking form (name, email, phone, project type, budget range, message)
-5. **Build admin appointments inbox** — list + detail + SignalR chat panel (mirror fire-and-ice-cream booking chat pattern)
+1. **Build `/projects` page** — fetch `GET /api/projects`, render `ProjectCard` grid with slug links + tech stack badges; featured toggle
+2. **Build `/projects/[slug]` page** — project detail: GIF demo (`<img>`), full description, tech stack, live/GitHub links
+3. **Build `/book` page** — appointment booking form (name, email, phone, ProjectType select, budget range, message) → `POST /api/appointments`
+4. **Build admin dashboard** (`/admin`) — stats cards: pending appointments, unpublished reviews, total projects
+5. **Build admin appointments** (`/admin/appointments`) — list + detail + SignalR chat panel (mirror fire-and-ice-cream booking chat pattern)
+6. **Build `/appointment/chat/[token]`** — tokenized public client chat page (8s polling fallback + SignalR)
+7. **Build admin projects** (`/admin/projects`) — CRUD table, drag reorder, thumbnail/GIF upload (multipart 50MB)
+8. **Build admin reviews** (`/admin/reviews`) — request form (sends tokenized email), approve/publish toggles
+9. **Build `/reviews/submit/[token]`** — public review form, 410 if already submitted
+10. **Build admin availability** (`/admin/availability`) — slots calendar + blocked slots list
+11. **Build admin settings** (`/admin/settings`) — bio, skills, social links, profile photo, Google Calendar connect
+12. **Deploy API to Azure App Service** — publish + configure all env vars
+13. **Deploy client to Vercel** — import repo, set root to `client/`, add env vars
+
+---
+
+## Deployment
+
+### Vercel (client)
+- Repo: `https://github.com/FulphilledDev/simpson-portfolio`
+- Root directory: `client`
+- Env vars: `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_GOOGLE_CLIENT_ID`
+- Production URL: `https://phitdev.vercel.app` (configured in CORS + Google OAuth)
+
+### Azure App Service (api)
+- Resource group: `phitdev-portfolio-rg`
+- App Service: `phitdev-api` → `https://phitdev-api.azurewebsites.net`
+- Storage account: `phitdevstore` (containers: `projects`, `profile` — public blob access)
+- All secrets go in **Environment variables** (double-underscore for nested keys, e.g. `Google__ClientId`)
+
+### Google Cloud Console OAuth
+- Authorized JavaScript origins: `http://localhost:3000`, `https://phitdev.vercel.app`
+- Authorized redirect URIs: `http://localhost:5149/api/googlecalendar/callback`, `https://phitdev-api.azurewebsites.net/api/googlecalendar/callback`
 
 ---
 
 ## Current State
 
-### Backend
+### Backend ✅ Fully scaffolded + DB live
 - ✅ All Domain entities + Enums
 - ✅ All Application DTOs + Interfaces + Options
 - ✅ AppDbContext + all DbSets
@@ -273,20 +300,20 @@ dotnet ef database update --project src/PhitDevPortfolio.Infrastructure --startu
 - ✅ All API controllers (8 controllers + hub)
 - ✅ Program.cs fully configured
 - ✅ Build: 0 errors, 4 warnings (acceptable)
-- ❌ Initial EF Core migration not yet created (needs PostgreSQL connection)
+- ✅ `InitialCreate` migration applied to Neon PostgreSQL
 
-### Frontend
-- ✅ Next.js 14 scaffolded + all packages installed
-- ✅ Tailwind dark futuristic theme configured
-- ✅ globals.css with glass/glow utilities
-- ✅ `lib/api.ts` — fetch wrapper + token management
-- ✅ `lib/signalr.ts` — SignalR connection factory
-- ✅ `middleware.ts` — admin route protection
-- ✅ `GlassCard`, `GlowButton` components
-- ✅ `HeroScene` + `HeroSceneCanvas` (Three.js wireframe icospheres)
+### Frontend ✅ Scaffolded + pushed to GitHub
+- ✅ Next.js 14 + all packages installed (tailwind-merge, framer-motion, three, @microsoft/signalr, next-auth)
+- ✅ Tailwind dark futuristic theme + globals.css glass/glow utilities
+- ✅ `lib/api.ts`, `lib/signalr.ts`, `middleware.ts`
+- ✅ `GlassCard`, `GlowButton`, `HeroScene` + `HeroSceneCanvas` (Three.js)
 - ✅ `AuthContext` — Google OAuth → custom JWT flow
-- ✅ `/admin/login` page
-- ✅ `/` home page (hero + skeleton project grid + CTA)
-- ❌ `.env.local` not created (copy from `.env.local.template`)
-- ❌ Public pages: `/projects`, `/projects/[slug]`, `/book`, `/appointment/chat/[token]`, `/reviews/submit/[token]`
-- ❌ Admin pages: dashboard, appointments, projects, reviews, availability, settings
+- ✅ `/` home page (Three.js hero + skeleton project grid + CTA)
+- ✅ `/admin/login` page (Google Identity Services button)
+- ❌ `.env.local` not created — copy from `.env.local.template` and fill in values
+- ❌ Not yet deployed to Vercel
+
+### Repository
+- GitHub: `https://github.com/FulphilledDev/simpson-portfolio` (private)
+- `appsettings.Development.json` gitignored — contains Neon connection string + Google secrets
+- `appsettings.json` has empty string placeholders for all secrets — safe to commit
