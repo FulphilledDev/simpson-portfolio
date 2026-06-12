@@ -1,6 +1,6 @@
 import * as signalR from "@microsoft/signalr";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5149";
 
 function getToken(): string | null {
   if (typeof window === "undefined") return null;
@@ -29,7 +29,10 @@ export function getAppointmentChatConnection(): signalR.HubConnection {
 
 export async function startConnection(): Promise<signalR.HubConnection> {
   const conn = getAppointmentChatConnection();
-  if (conn.state === signalR.HubConnectionState.Disconnected) {
+  if (
+    conn.state === signalR.HubConnectionState.Disconnected ||
+    conn.state === signalR.HubConnectionState.Disconnecting
+  ) {
     await conn.start();
   }
   return conn;

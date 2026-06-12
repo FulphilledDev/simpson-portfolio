@@ -1,7 +1,8 @@
 "use client";
 
 import { createContext, useContext, useCallback, useState, ReactNode } from "react";
-import { apiFetch, storeToken, clearToken, isAuthenticated } from "@/lib/api";
+import { useRouter } from "next/navigation";
+import { apiFetch, storeToken, clearToken } from "@/lib/api";
 
 interface AdminUser {
   email: string;
@@ -19,6 +20,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AdminUser | null>(null);
+  const router = useRouter();
 
   const login = useCallback(async (idToken: string) => {
     const result = await apiFetch<{ token: string; email: string; name: string }>(
@@ -38,7 +40,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     clearToken();
     document.cookie = "phitdev_admin_token=; path=/; max-age=0";
     setUser(null);
-  }, []);
+    router.push("/admin/login");
+  }, [router]);
 
   return (
     <AuthContext.Provider value={{ user, login, logout }}>
