@@ -9,14 +9,14 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: "#0a0a0f",
-        surface: "#12121a",
-        "surface-2": "#1a1a26",
-        "neon-cyan": "#00f5ff",
-        "neon-purple": "#bf00ff",
-        "neon-pink": "#ff0080",
-        "glass-border": "rgba(255,255,255,0.08)",
-        "glass-bg": "rgba(255,255,255,0.03)",
+        background: "#0b1220",
+        surface: "#0e1a30",
+        "surface-2": "#152040",
+        "neon-cyan": "#5bc8f5",
+        "neon-purple": "#2468cc",
+        "neon-pink": "#4ab8e8",
+        "glass-border": "rgba(255,255,255,0.10)",
+        "glass-bg": "rgba(255,255,255,0.05)",
       },
       fontFamily: {
         sans: ["var(--font-geist-sans)", "system-ui", "sans-serif"],
@@ -25,16 +25,16 @@ const config: Config = {
       backgroundImage: {
         "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
         "gradient-hero":
-          "radial-gradient(ellipse 80% 50% at 50% -20%, rgba(0,245,255,0.12), transparent), radial-gradient(ellipse 60% 40% at 80% 80%, rgba(191,0,255,0.10), transparent)",
-        "glow-cyan": "linear-gradient(135deg, #00f5ff, #0080ff)",
-        "glow-purple": "linear-gradient(135deg, #bf00ff, #ff0080)",
+          "radial-gradient(ellipse 80% 50% at 50% -20%, rgba(91,200,245,0.14), transparent), radial-gradient(ellipse 60% 40% at 80% 80%, rgba(36,104,204,0.12), transparent)",
+        "glow-cyan": "linear-gradient(135deg, #5bc8f5, #2468cc)",
+        "glow-purple": "linear-gradient(135deg, #2468cc, #5bc8f5)",
       },
       boxShadow: {
-        "glow-sm": "0 0 12px rgba(0,245,255,0.25)",
-        "glow-md": "0 0 24px rgba(0,245,255,0.35)",
-        "glow-lg": "0 0 48px rgba(0,245,255,0.4)",
-        "glow-purple": "0 0 24px rgba(191,0,255,0.35)",
-        glass: "0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)",
+        "glow-sm": "0 0 12px rgba(91,200,245,0.20)",
+        "glow-md": "0 0 24px rgba(91,200,245,0.28)",
+        "glow-lg": "0 0 48px rgba(91,200,245,0.32)",
+        "glow-purple": "0 0 24px rgba(36,104,204,0.28)",
+        glass: "0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)",
       },
       animation: {
         "float": "float 6s ease-in-out infinite",
