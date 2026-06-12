@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import GlassCard from "@/components/ui/GlassCard";
@@ -20,7 +20,7 @@ declare global {
   }
 }
 
-export default function AdminLoginPage() {
+function LoginContent() {
   const { login } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -118,5 +118,21 @@ export default function AdminLoginPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function AdminLoginPage() {
+  return (
+    <Suspense>
+      <LoginContent />
+    </Suspense>
+  );
+}
+
+export default function AdminLoginPage() {
+  return (
+    <Suspense>
+      <LoginContent />
+    </Suspense>
   );
 }
