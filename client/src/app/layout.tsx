@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 const geistSans = localFont({
@@ -21,7 +22,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Philip Simpson — Full-Stack Developer",
     description: "Full-stack developer specializing in .NET, Angular, and React.",
-    url: "https://phitdev.vercel.app",
+    url: "https://simpsonsoftware.site",
     siteName: "PhitDev Portfolio",
     locale: "en_US",
     type: "website",
@@ -44,6 +45,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >
         {children}
+        <Analytics />
       </body>
     </html>
   );
