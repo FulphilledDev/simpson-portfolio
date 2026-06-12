@@ -128,11 +128,3 @@ export default function AdminLoginPage() {
     </Suspense>
   );
 }
-
-export default function AdminLoginPage() {
-  return (
-    <Suspense>
-      <LoginContent />
-    </Suspense>
-  );
-}
