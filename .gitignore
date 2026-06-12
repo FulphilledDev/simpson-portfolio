@@ -1,0 +1,27 @@
+# .NET
+bin/
+obj/
+*.user
+.vs/
+
+# Secrets — never commit
+appsettings.Development.json
+appsettings.Production.json
+
+# Dev uploads
+src/PhitDevPortfolio.API/wwwroot/uploads/
+
+# EF migrations lock
+*.db
+*.db-shm
+*.db-wal
+
+# Node / Next.js
+client/node_modules/
+client/.next/
+client/.env.local
+client/.env.production
+
+# OS
+.DS_Store
+Thumbs.db

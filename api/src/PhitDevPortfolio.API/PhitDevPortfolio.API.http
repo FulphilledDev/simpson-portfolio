@@ -1,0 +1,6 @@
+@PhitDevPortfolio.API_HostAddress = http://localhost:5149
+
+GET {{PhitDevPortfolio.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/PhitDevPortfolio.API/PhitDevPortfolio.API.csproj" />
+    <Project Path="src/PhitDevPortfolio.Application/PhitDevPortfolio.Application.csproj" />
+    <Project Path="src/PhitDevPortfolio.Domain/PhitDevPortfolio.Domain.csproj" />
+    <Project Path="src/PhitDevPortfolio.Infrastructure/PhitDevPortfolio.Infrastructure.csproj" />
+  </Folder>
+</Solution>
