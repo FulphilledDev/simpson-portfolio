@@ -21,9 +21,9 @@ public class AdminSettingsController(IAdminSettingsService settingsService) : Co
     [Authorize]
     [HttpPost("photo")]
     [RequestSizeLimit(5 * 1024 * 1024)] // 5 MB
-    public async Task<IActionResult> UploadPhoto(IFormFile photo, CancellationToken ct)
+    public async Task<IActionResult> UploadPhoto(IFormFile? photo, CancellationToken ct)
     {
-        if (photo.Length == 0) return BadRequest("No file provided.");
+        if (photo is null || photo.Length == 0) return BadRequest("No file provided.");
         var allowed = new[] { "image/jpeg", "image/png", "image/webp" };
         if (!allowed.Contains(photo.ContentType)) return BadRequest("Only JPEG, PNG, or WebP accepted.");
 
