@@ -13,7 +13,7 @@
 
 ## Business Context
 
-**PhitDev Portfolio** is Phillip Simpson's personal developer portfolio site.  
+**PhitDev Portfolio** is Philip Simpson's personal developer portfolio site.  
 It replaces the old `simpsonsoftware.site` React portfolio with a modern, dark 3D futuristic glassmorphism aesthetic.
 
 **Goals:**
@@ -99,7 +99,7 @@ phitdev-portfolio/
 - `BlockedSlot` — Id, Start (DateTimeOffset), End (DateTimeOffset), Reason?
 - `Project` — Id, Title, Slug (unique index, URL-safe), ShortDescription, LongDescription?, TechStack (JSON string "[]"), LiveUrl?, GitHubUrl?, ThumbnailUrl, GifDemoUrl?, IsFeatured, IsActive (default true), SortOrder, CreatedAt, UpdatedAt
 - `Review` — Id, ReviewerName, ReviewerTitle?, ReviewerCompany?, Content (MaxLength 1000), Rating (1-5), ReviewToken (GUID, unique index), RequestedAt, SubmittedAt? (single-use: null = unused), IsApproved, IsPublished, SortOrder
-- `AdminSettings` — singleton (Id=1): Bio, Skills (JSON "[]"), ContactEmail, LinkedInUrl?, GitHubUrl?, TwitterUrl?, ResumeUrl?, ProfilePhotoUrl?, OwnerName, OwnerTitle; seeded with OwnerName="Phillip Simpson", OwnerTitle="Full-Stack Developer"
+- `AdminSettings` — singleton (Id=1): Bio, Skills (JSON "[]"), ContactEmail, LinkedInUrl?, GitHubUrl?, TwitterUrl?, ResumeUrl?, ProfilePhotoUrl?, OwnerName, OwnerTitle; seeded with OwnerName="Philip Simpson", OwnerTitle="Full-Stack Developer"
 - `GoogleCalendarConnection` — Id, CalendarId, ConnectedEmail, AccessToken (encrypted), RefreshToken (encrypted), TokenExpiresAt, ConnectedAt, IsActive (indexed), AutoSync
 
 **Enums** (in `Enums/Enums.cs`):
@@ -258,18 +258,10 @@ dotnet ef database update --project src/PhitDevPortfolio.Infrastructure --startu
 ---
 
 ## What To Do Next (in order)
-
-1. ✅ **`/book` page** — done
-2. ✅ **Build admin dashboard** (`/admin`) — stats cards: pending appointments, unpublished reviews, total projects
-3. ✅ **Build admin appointments** (`/admin/appointments`) — list + detail + SignalR chat panel
-4. ✅ **Build `/appointment/chat/[token]`** — tokenized public client chat page (8s polling)
-5. ✅ **Build admin projects** (`/admin/projects`) — CRUD table, drag reorder, thumbnail/GIF upload (multipart 50MB)
-8. ✅ **Build admin reviews** (`/admin/reviews`) — request form (sends tokenized email), approve/publish toggles
-9. ✅ **Build `/reviews/submit/[token]`** — public review form, 410 if already submitted
-10. ✅ **Build admin availability** (`/admin/availability`) — slots calendar + blocked slots list
-11. ✅ **Build admin settings** (`/admin/settings`) — bio, skills, social links, profile photo, Google Calendar connect
-12. **Deploy API to Azure App Service** — publish + configure all env vars
-13. **Deploy client to Vercel** — import repo, set root to `client/`, add env vars
+1. ✅ **Finish frontend pages** — all pages built
+2. ✅ **Test email flows** — appointment request, response, chat notifications (both directions), review request all verified working
+3. ✅ **Deploy API to Azure App Service** — deployed to `simpson-software-api`, all env vars configured
+4. **Deploy client to Vercel** — import repo, set root to `client/`, add env vars (`NEXT_PUBLIC_API_URL=https://simpson-software-api-f3cqdsfpedapacbp.westus2-01.azurewebsites.net`)
 
 ---
 
@@ -282,14 +274,15 @@ dotnet ef database update --project src/PhitDevPortfolio.Infrastructure --startu
 - Production URL: `https://phitdev.vercel.app` (configured in CORS + Google OAuth)
 
 ### Azure App Service (api)
-- Resource group: `phitdev-portfolio-rg`
-- App Service: `phitdev-api` → `https://phitdev-api.azurewebsites.net`
-- Storage account: `phitdevstore` (containers: `projects`, `profile` — public blob access)
+- Resource group: `simpson-software-rg`
+- App Service Plan: `ASP-simpsonsoftware`
+- App Service: `simpson-software-api` → `https://simpson-software-api-f3cqdsfpedapacbp.westus2-01.azurewebsites.net`
+- Storage account: `simpsonsoftwarestore` (containers: `projects`, `profile` — public blob access)
 - All secrets go in **Environment variables** (double-underscore for nested keys, e.g. `Google__ClientId`)
 
 ### Google Cloud Console OAuth
 - Authorized JavaScript origins: `http://localhost:3000`, `https://phitdev.vercel.app`
-- Authorized redirect URIs: `http://localhost:5149/api/googlecalendar/callback`, `https://phitdev-api.azurewebsites.net/api/googlecalendar/callback`
+- Authorized redirect URIs: `http://localhost:5149/api/googlecalendar/callback`, `https://simpson-software-api-f3cqdsfpedapacbp.westus2-01.azurewebsites.net/api/googlecalendar/callback`
 
 ---
 
