@@ -19,6 +19,15 @@ interface AdminSettingsDto {
   profilePhotoUrl: string | null;
   ownerName: string;
   ownerTitle: string;
+  appointmentDurationMinutes: number;
+}
+
+interface ResumeVersionDto {
+  id: number;
+  fileName: string;
+  url: string;
+  uploadedAt: string;
+  isActive: boolean;
 }
 
 interface GoogleCalendarStatusDto {
@@ -37,9 +46,9 @@ interface SettingsForm {
   linkedInUrl: string;
   gitHubUrl: string;
   twitterUrl: string;
-  resumeUrl: string;
   skillInput: string;
   skills: string[];
+  appointmentDurationMinutes: number;
 }
 
 const EMPTY_FORM: SettingsForm = {
@@ -50,9 +59,9 @@ const EMPTY_FORM: SettingsForm = {
   linkedInUrl: "",
   gitHubUrl: "",
   twitterUrl: "",
-  resumeUrl: "",
   skillInput: "",
   skills: [],
+  appointmentDurationMinutes: 30,
 };
 
 // ── Shared styles ──────────────────────────────────────────────────────────
@@ -222,6 +231,302 @@ function ProfilePhotoSection({
         <p className="text-[11px] text-white/30">JPEG, PNG, or WebP · Max 5 MB</p>
         {error && <p className="text-[11px] text-red-400">{error}</p>}
       </div>
+    </div>
+  );
+}
+
+// ── Resume Manager Section ────────────────────────────────────────────────
+
+function ResumeManagerSection() {
+  const fileRef   = useRef<HTMLInputElement>(null);
+  const apiUrl    = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5149";
+
+  const [versions,    setVersions]    = useState<ResumeVersionDto[]>([]);
+  const [loading,     setLoading]     = useState(true);
+  const [uploading,   setUploading]   = useState(false);
+  const [error,       setError]       = useState<string | null>(null);
+
+  // Email form state
+  const [emailFormId,  setEmailFormId]  = useState<number | null>(null);
+  const [emailTo,      setEmailTo]      = useState("");
+  const [emailToName,  setEmailToName]  = useState("");
+  const [sending,      setSending]      = useState(false);
+  const [sendError,    setSendError]    = useState<string | null>(null);
+  const [sentId,       setSentId]       = useState<number | null>(null);
+
+  const fetchVersions = useCallback(async () => {
+    try {
+      const data = await apiFetch<ResumeVersionDto[]>("/api/settings/resumes", { authenticated: true });
+      setVersions(data);
+    } catch {
+      setVersions([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchVersions(); }, [fetchVersions]);
+
+  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const allowed = [
+      "application/pdf",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ];
+    if (!allowed.includes(file.type)) {
+      setError("Only PDF, DOC, or DOCX files are accepted.");
+      return;
+    }
+    if (file.size > 30 * 1024 * 1024) {
+      setError("File must be under 30 MB.");
+      return;
+    }
+    setUploading(true);
+    setError(null);
+    const fd = new FormData();
+    fd.append("resume", file);
+    try {
+      await apiFetch("/api/settings/resumes", { method: "POST", authenticated: true, body: fd });
+      await fetchVersions();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Upload failed.");
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  }
+
+  async function handleActivate(id: number) {
+    try {
+      await apiFetch(`/api/settings/resumes/${id}/activate`, { method: "PUT", authenticated: true });
+      setVersions((vs) => vs.map((v) => ({ ...v, isActive: v.id === id })));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to activate.");
+    }
+  }
+
+  async function handleDelete(id: number, fileName: string) {
+    if (!confirm(`Delete "${fileName}"? This cannot be undone.`)) return;
+    try {
+      await apiFetch(`/api/settings/resumes/${id}`, { method: "DELETE", authenticated: true });
+      setVersions((vs) => vs.filter((v) => v.id !== id));
+      if (emailFormId === id) setEmailFormId(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete.");
+    }
+  }
+
+  function openEmailForm(id: number) {
+    setEmailFormId(emailFormId === id ? null : id);
+    setSendError(null);
+    setSentId(null);
+    setEmailTo("");
+    setEmailToName("");
+  }
+
+  async function handleSendEmail(e: React.FormEvent, id: number) {
+    e.preventDefault();
+    if (!emailTo.trim()) { setSendError("Recipient email is required."); return; }
+    setSending(true);
+    setSendError(null);
+    try {
+      await apiFetch(`/api/settings/resumes/${id}/send`, {
+        method: "POST",
+        authenticated: true,
+        body: JSON.stringify({ toEmail: emailTo.trim(), toName: emailToName.trim() }),
+      });
+      setSentId(id);
+      setEmailFormId(null);
+      setEmailTo("");
+      setEmailToName("");
+      setTimeout(() => setSentId(null), 4000);
+    } catch (err) {
+      setSendError(err instanceof Error ? err.message : "Failed to send email.");
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Upload row */}
+      <div className="flex items-center gap-3">
+        <input
+          ref={fileRef}
+          type="file"
+          accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+          className="hidden"
+          onChange={handleFile}
+        />
+        <GlowButton
+          variant="outline-cyan"
+          size="sm"
+          loading={uploading}
+          onClick={() => fileRef.current?.click()}
+          type="button"
+        >
+          {uploading ? "Uploading…" : "Upload Resume"}
+        </GlowButton>
+        <p className="text-[11px] text-white/30">PDF, DOC, or DOCX · Max 30 MB</p>
+      </div>
+
+      {error && <p className="text-sm text-red-400 px-1">{error}</p>}
+
+      {/* Versions list */}
+      {loading ? (
+        <div className="flex items-center gap-2 text-sm text-white/40">
+          <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+          Loading versions…
+        </div>
+      ) : versions.length === 0 ? (
+        <p className="text-sm text-white/30 italic">No resumes uploaded yet.</p>
+      ) : (
+        <div className="space-y-2">
+          {versions.map((v) => (
+            <div key={v.id} className="rounded-xl overflow-hidden">
+              {/* Row */}
+              <div className={`flex items-center gap-3 p-3 border transition-colors ${
+                v.isActive
+                  ? "bg-neon-cyan/[0.06] border-neon-cyan/30"
+                  : "bg-white/[0.02] border-white/[0.06]"
+              } ${emailFormId === v.id ? "border-b-0 rounded-t-xl" : "rounded-xl"}`}>
+                {/* File icon */}
+                <div className={`flex-shrink-0 p-1.5 rounded-lg ${v.isActive ? "bg-neon-cyan/10 text-neon-cyan" : "bg-white/[0.05] text-white/30"}`}>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+
+                {/* Info */}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-white/85 truncate">{v.fileName}</p>
+                  <p className="text-[11px] text-white/35">
+                    {new Date(v.uploadedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                  </p>
+                </div>
+
+                {/* Sent success flash */}
+                {sentId === v.id && (
+                  <span className="flex-shrink-0 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-neon-cyan/20 text-neon-cyan border border-neon-cyan/30 animate-pulse">
+                    Sent ✓
+                  </span>
+                )}
+
+                {/* Active badge */}
+                {v.isActive && sentId !== v.id && (
+                  <span className="flex-shrink-0 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-neon-cyan/20 text-neon-cyan border border-neon-cyan/30">
+                    Active
+                  </span>
+                )}
+
+                {/* Actions */}
+                <div className="flex items-center gap-0.5 flex-shrink-0">
+                  {/* Download */}
+                  <a
+                    href={`${apiUrl}/api/settings/resumes/${v.id}/download`}
+                    className="p-1.5 rounded-lg text-white/30 hover:text-white/70 hover:bg-white/[0.06] transition-colors"
+                    title="Download"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                  </a>
+                  {/* Email */}
+                  <button
+                    type="button"
+                    onClick={() => openEmailForm(v.id)}
+                    className={`p-1.5 rounded-lg transition-colors ${
+                      emailFormId === v.id
+                        ? "text-neon-cyan bg-neon-cyan/[0.08]"
+                        : "text-white/30 hover:text-neon-cyan hover:bg-neon-cyan/[0.06]"
+                    }`}
+                    title="Send by email"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                        d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                  </button>
+                  {/* Activate */}
+                  {!v.isActive && (
+                    <button
+                      type="button"
+                      onClick={() => handleActivate(v.id)}
+                      className="p-1.5 rounded-lg text-white/30 hover:text-neon-cyan hover:bg-neon-cyan/[0.08] transition-colors"
+                      title="Set as active"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </button>
+                  )}
+                  {/* Delete */}
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(v.id, v.fileName)}
+                    className="p-1.5 rounded-lg text-white/30 hover:text-red-400 hover:bg-red-500/[0.08] transition-colors"
+                    title="Delete"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              {/* Inline email form */}
+              {emailFormId === v.id && (
+                <form
+                  onSubmit={(e) => handleSendEmail(e, v.id)}
+                  className="px-3 py-3 bg-white/[0.02] border border-neon-cyan/20 border-t-0 rounded-b-xl space-y-2"
+                >
+                  <p className="text-[11px] font-semibold text-white/50 uppercase tracking-wider mb-2">
+                    Send "{v.fileName}" as attachment
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <input
+                      type="email"
+                      required
+                      value={emailTo}
+                      onChange={(e) => setEmailTo(e.target.value)}
+                      placeholder="Recipient email *"
+                      className={inputCls}
+                    />
+                    <input
+                      type="text"
+                      value={emailToName}
+                      onChange={(e) => setEmailToName(e.target.value)}
+                      placeholder="Recipient name (optional)"
+                      className={inputCls}
+                    />
+                  </div>
+                  {sendError && <p className="text-[11px] text-red-400">{sendError}</p>}
+                  <div className="flex items-center gap-2 pt-1">
+                    <GlowButton type="submit" variant="cyan" size="sm" loading={sending}>
+                      {sending ? "Sending…" : "Send Email"}
+                    </GlowButton>
+                    <GlowButton
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setEmailFormId(null)}
+                    >
+                      Cancel
+                    </GlowButton>
+                  </div>
+                </form>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -426,9 +731,9 @@ export default function AdminSettingsPage() {
           linkedInUrl: data.linkedInUrl ?? "",
           gitHubUrl: data.gitHubUrl ?? "",
           twitterUrl: data.twitterUrl ?? "",
-          resumeUrl: data.resumeUrl ?? "",
           skillInput: "",
           skills: Array.isArray(data.skills) ? data.skills : [],
+          appointmentDurationMinutes: data.appointmentDurationMinutes ?? 30,
         });
         setProfilePhotoUrl(data.profilePhotoUrl ?? null);
       })
@@ -487,8 +792,8 @@ export default function AdminSettingsPage() {
           linkedInUrl: form.linkedInUrl.trim() || null,
           gitHubUrl: form.gitHubUrl.trim() || null,
           twitterUrl: form.twitterUrl.trim() || null,
-          resumeUrl: form.resumeUrl.trim() || null,
           skills: form.skills,
+          appointmentDurationMinutes: form.appointmentDurationMinutes,
         }),
       });
       setSaved(true);
@@ -554,7 +859,7 @@ export default function AdminSettingsPage() {
                   type="text"
                   value={form.ownerName}
                   onChange={(e) => set("ownerName", e.target.value)}
-                  placeholder="Phillip Simpson"
+                  placeholder="Philip Simpson"
                   className={inputCls}
                 />
               </Field>
@@ -585,6 +890,18 @@ export default function AdminSettingsPage() {
                 value={form.contactEmail}
                 onChange={(e) => set("contactEmail", e.target.value)}
                 placeholder="hello@example.com"
+                className={inputCls}
+              />
+            </Field>
+
+            <Field label="Appointment Duration (minutes)" hint="Default length used when booking a consultation (30 = half hour)">
+              <input
+                type="number"
+                min={15}
+                max={240}
+                step={15}
+                value={form.appointmentDurationMinutes}
+                onChange={(e) => set("appointmentDurationMinutes", parseInt(e.target.value, 10) || 30)}
                 className={inputCls}
               />
             </Field>
@@ -712,26 +1029,23 @@ export default function AdminSettingsPage() {
                   />
                 </div>
               </Field>
-
-              <Field label="Resume URL">
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/25">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                  </span>
-                  <input
-                    type="url"
-                    value={form.resumeUrl}
-                    onChange={(e) => set("resumeUrl", e.target.value)}
-                    placeholder="https://example.com/resume.pdf"
-                    className={`${inputCls} pl-9`}
-                  />
-                </div>
-              </Field>
             </div>
           </div>
+        </GlassCard>
+
+        {/* ── Resume ───────────────────────────────────────────────────── */}
+        <GlassCard padding="lg">
+          <SectionHeader
+            icon={
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            }
+            title="Resume"
+            description="Upload versions and choose which one is publicly linked."
+          />
+          <ResumeManagerSection />
         </GlassCard>
 
         {/* ── Google Calendar ───────────────────────────────────────────── */}
@@ -750,7 +1064,7 @@ export default function AdminSettingsPage() {
         </GlassCard>
 
         {/* ── Save bar ──────────────────────────────────────────────────── */}
-        <div className="flex items-center justify-between gap-4 py-4 border-t border-white/[0.06] sticky bottom-0 bg-[#0a0a0f]/80 backdrop-blur-md -mx-1 px-1 rounded-b-xl">
+        <div className="flex items-center justify-between gap-4 py-4 border-t border-white/[0.06] sticky bottom-0 bg-background/90 backdrop-blur-md -mx-1 px-1 rounded-b-xl">
           {error && (
             <p className="text-sm text-red-400 flex items-center gap-1.5">
               <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">

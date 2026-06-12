@@ -3,8 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { apiFetch } from "@/lib/api";
 import { startConnection } from "@/lib/signalr";
-import GlassCard from "@/components/ui/GlassCard";
-import GlowButton from "@/components/ui/GlowButton";
+
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -32,6 +31,8 @@ interface AppointmentDetail {
   respondedAt: string | null;
   ownerNotes: string | null;
   clientToken: string;
+  scheduledDate: string | null; // "YYYY-MM-DD"
+  scheduledTime: string | null; // "HH:MM:SS"
 }
 
 interface Message {
@@ -75,6 +76,17 @@ function formatTime(iso: string) {
     hour: "numeric",
     minute: "2-digit",
   });
+}
+
+function formatScheduled(date: string, time: string) {
+  // date = "YYYY-MM-DD", time = "HH:MM:SS"
+  const [h, m] = time.split(":");
+  const d = new Date(date + "T00:00:00");
+  const timeStr = new Date(0, 0, 0, Number(h), Number(m)).toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  return `${d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} at ${timeStr}`;
 }
 
 function formatRelative(iso: string) {
@@ -176,6 +188,123 @@ function MessageBubble({ msg }: { msg: Message }) {
         </div>
         <span className="text-[10px] text-white/25 px-1">{formatTime(msg.sentAt)}</span>
       </div>
+    </div>
+  );
+}
+
+// ── Schedule time panel ────────────────────────────────────────────────────
+
+function ScheduleTimePanel({
+  appointment,
+  onScheduled,
+}: {
+  appointment: AppointmentDetail;
+  onScheduled: (updated: AppointmentDetail) => void;
+}) {
+  const hasExisting = !!(appointment.scheduledDate && appointment.scheduledTime);
+
+  // Pre-fill from existing scheduled values or empty
+  const [date, setDate] = useState(appointment.scheduledDate ?? "");
+  const [time, setTime] = useState(
+    appointment.scheduledTime ? appointment.scheduledTime.substring(0, 5) : ""
+  );
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+
+  async function handleSchedule() {
+    if (!date || !time) return;
+    setSubmitting(true);
+    setError(null);
+    setSuccess(false);
+    try {
+      const updated = await apiFetch<AppointmentDetail>(
+        `/api/appointments/${appointment.id}/schedule`,
+        {
+          method: "PATCH",
+          authenticated: true,
+          body: JSON.stringify({
+            date,
+            time: `${time}:00`,
+            // Send the browser's UTC offset so the calendar event lands at the correct local time.
+            // JS getTimezoneOffset() returns minutes *west* of UTC (negative for east), so negate it.
+            utcOffsetMinutes: -new Date(`${date}T${time}`).getTimezoneOffset(),
+          }),
+        }
+      );
+      onScheduled(updated);
+      setSuccess(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to schedule");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div className="border border-white/[0.08] rounded-xl p-4 bg-white/[0.02] space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-[11px] font-semibold text-white/40 uppercase tracking-wider">
+          {hasExisting ? "Update Appointment Time" : "Add Appointment Time"}
+        </p>
+        {hasExisting && (
+          <span className="text-[11px] text-neon-cyan/60 bg-neon-cyan/[0.06] border border-neon-cyan/20 rounded px-2 py-0.5">
+            Scheduled: {formatScheduled(appointment.scheduledDate!, appointment.scheduledTime!)}
+          </span>
+        )}
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className="block text-[10px] text-white/30 uppercase tracking-wider mb-1">
+            Date
+          </label>
+          <input
+            type="date"
+            value={date}
+            onChange={(e) => { setDate(e.target.value); setSuccess(false); }}
+            className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-white/80 focus:outline-none focus:border-neon-cyan/30 transition-colors [color-scheme:dark]"
+          />
+        </div>
+        <div>
+          <label className="block text-[10px] text-white/30 uppercase tracking-wider mb-1">
+            Time
+          </label>
+          <input
+            type="time"
+            value={time}
+            onChange={(e) => { setTime(e.target.value); setSuccess(false); }}
+            className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-white/80 focus:outline-none focus:border-neon-cyan/30 transition-colors [color-scheme:dark]"
+          />
+        </div>
+      </div>
+
+      {error && <p className="text-xs text-red-400">{error}</p>}
+      {success && (
+        <p className="text-xs text-neon-cyan/70">
+          ✓ Client notified and calendar {hasExisting ? "updated" : "event created"}
+        </p>
+      )}
+
+      <button
+        onClick={handleSchedule}
+        disabled={!date || !time || submitting}
+        className="w-full py-2.5 rounded-lg text-sm font-medium transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed btn-glow-cyan"
+      >
+        {submitting ? (
+          <span className="flex items-center justify-center gap-2">
+            <svg className="animate-spin h-3.5 w-3.5" viewBox="0 0 24 24" fill="none">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+            Saving…
+          </span>
+        ) : hasExisting ? (
+          "Update Time"
+        ) : (
+          "Set Appointment Time"
+        )}
+      </button>
     </div>
   );
 }
@@ -303,9 +432,11 @@ function RespondPanel({
 function AppointmentDetailPanel({
   appointmentId,
   onConversationUpdate,
+  onBack,
 }: {
   appointmentId: number;
   onConversationUpdate: () => void;
+  onBack?: () => void;
 }) {
   const [appointment, setAppointment] = useState<AppointmentDetail | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -314,8 +445,17 @@ function AppointmentDetailPanel({
   const [sending, setSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const latestMessageIdRef = useRef<number>(0);
+
+  // Merge incoming messages (dedup by id, preserving order)
+  function mergeMessages(prev: Message[], incoming: Message[]): Message[] {
+    const existingIds = new Set(prev.map((m) => m.id));
+    const newOnes = incoming.filter((m) => !existingIds.has(m.id));
+    return newOnes.length ? [...prev, ...newOnes] : prev;
+  }
 
   // Load detail + messages
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     setLoading(true);
     setMessages([]);
@@ -344,21 +484,26 @@ function AppointmentDetailPanel({
   }, [appointmentId]);
 
   // SignalR — join group and listen for NewMessage
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     let mounted = true;
     let conn: Awaited<ReturnType<typeof startConnection>> | null = null;
+
+    function joinGroup() {
+      conn?.invoke("JoinAppointment", appointmentId).catch(console.error);
+    }
 
     startConnection()
       .then((c) => {
         if (!mounted) return;
         conn = c;
-        c.invoke("JoinAppointment", appointmentId).catch(console.error);
+        joinGroup();
+        // Re-join the group after automatic reconnection (covers hot-reload / network drops)
+        c.onreconnected(() => { if (mounted) joinGroup(); });
         c.on("NewMessage", (msg: Message) => {
           if (!mounted) return;
-          setMessages((prev) =>
-            prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]
-          );
-          // Mark read immediately when message arrives while panel is open
+          if (msg.id) latestMessageIdRef.current = Math.max(latestMessageIdRef.current, msg.id);
+          setMessages((prev) => mergeMessages(prev, [msg]));
           apiFetch(`/api/appointments/${appointmentId}/messages/read`, {
             method: "PATCH",
             authenticated: true,
@@ -378,6 +523,22 @@ function AppointmentDetailPanel({
     };
   }, [appointmentId]);
 
+  // 5s polling fallback — catches any SignalR-missed messages
+  useEffect(() => {
+    const timer = setInterval(async () => {
+      try {
+        const latest = await apiFetch<Message[]>(
+          `/api/appointments/${appointmentId}/messages`,
+          { authenticated: true }
+        );
+        setMessages((prev) => mergeMessages(prev, latest));
+      } catch {
+        // silently ignore poll errors
+      }
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [appointmentId]);
+
   // Auto-scroll when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -388,11 +549,13 @@ function AppointmentDetailPanel({
     if (!content || sending) return;
     setSending(true);
     try {
-      await apiFetch(`/api/appointments/${appointmentId}/messages`, {
+      const msg = await apiFetch<Message>(`/api/appointments/${appointmentId}/messages`, {
         method: "POST",
         authenticated: true,
         body: JSON.stringify({ content }),
       });
+      // Optimistically add own message immediately (SignalR also fires but dedups)
+      setMessages((prev) => mergeMessages(prev, [msg]));
       setMessageText("");
       onConversationUpdate();
     } catch (e) {
@@ -433,13 +596,24 @@ function AppointmentDetailPanel({
   return (
     <div className="flex-1 flex flex-col min-h-0">
       {/* Header */}
-      <div className="px-6 py-4 border-b border-white/[0.08] flex items-center justify-between flex-shrink-0">
-        <div>
-          <h2 className="text-base font-semibold text-white/90">{appointment.name}</h2>
-          <p className="text-[12px] text-white/40 mt-0.5">{appointment.email}</p>
+      <div className="px-4 md:px-6 py-4 border-b border-white/[0.08] flex items-center gap-3 flex-shrink-0">
+        {onBack && (
+          <button
+            onClick={onBack}
+            className="md:hidden flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg text-white/50 hover:text-white/90 hover:bg-white/[0.06] transition-colors"
+            aria-label="Back to list"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+        )}
+        <div className="flex-1 min-w-0">
+          <h2 className="text-base font-semibold text-white/90 truncate">{appointment.name}</h2>
+          <p className="text-[12px] text-white/40 mt-0.5 truncate">{appointment.email}</p>
         </div>
-        <div className="flex items-center gap-2.5">
-          <span className="text-[11px] text-white/30 bg-white/[0.04] border border-white/[0.06] px-2 py-1 rounded">
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <span className="hidden sm:inline text-[11px] text-white/30 bg-white/[0.04] border border-white/[0.06] px-2 py-1 rounded">
             {PROJECT_TYPE_MAP[appointment.projectType]}
           </span>
           <StatusBadge status={appointment.status} />
@@ -449,7 +623,7 @@ function AppointmentDetailPanel({
       {/* Scrollable body */}
       <div className="flex-1 overflow-y-auto min-h-0">
         {/* Client details */}
-        <div className="px-6 py-5 border-b border-white/[0.06] space-y-4">
+        <div className="px-4 md:px-6 py-5 border-b border-white/[0.06] space-y-4">
           {/* Info grid */}
           <div className="grid grid-cols-2 gap-x-6 gap-y-3">
             {appointment.phone && (
@@ -509,6 +683,17 @@ function AppointmentDetailPanel({
             />
           )}
 
+          {/* Schedule appointment time — only for Accepted */}
+          {appointment.status === 1 && (
+            <ScheduleTimePanel
+              appointment={appointment}
+              onScheduled={(updated) => {
+                setAppointment(updated);
+                onConversationUpdate();
+              }}
+            />
+          )}
+
           {/* Client chat link */}
           <div className="flex items-center gap-2 pt-1">
             <span className="text-[11px] text-white/25">Client chat link:</span>
@@ -524,7 +709,7 @@ function AppointmentDetailPanel({
         </div>
 
         {/* Chat messages */}
-        <div className="px-6 py-4">
+        <div className="px-4 md:px-6 py-4">
           <p className="text-[10px] text-white/25 uppercase tracking-wider mb-4">Conversation</p>
           {messages.length === 0 ? (
             <p className="text-sm text-white/20 text-center py-8">No messages yet.</p>
@@ -537,7 +722,7 @@ function AppointmentDetailPanel({
 
       {/* Message input — only for Accepted appointments */}
       {appointment.status === 1 && (
-        <div className="px-6 py-4 border-t border-white/[0.08] flex-shrink-0">
+        <div className="px-4 md:px-6 py-4 border-t border-white/[0.08] flex-shrink-0">
           <div className="flex gap-3 items-end">
             <textarea
               ref={inputRef}
@@ -595,7 +780,7 @@ function AppointmentDetailPanel({
 
       {/* Denied — show note */}
       {appointment.status === 2 && (
-        <div className="px-6 py-4 border-t border-white/[0.06] flex-shrink-0">
+        <div className="px-4 md:px-6 py-4 border-t border-white/[0.06] flex-shrink-0">
           <p className="text-[12px] text-white/25 text-center">
             This appointment was denied. Chat is disabled.
           </p>
@@ -614,6 +799,9 @@ export default function AdminAppointmentsPage() {
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [filter, setFilter] = useState<FilterKey>("all");
+  // Mobile: track whether we're showing list or detail
+  const [mobileView, setMobileView] = useState<"list" | "detail">("list");
+  const touchStartXRef = useRef<number | null>(null);
 
   const loadConversations = useCallback(async () => {
     try {
@@ -663,10 +851,21 @@ export default function AdminAppointmentsPage() {
     { key: "denied", label: "Denied" },
   ];
 
+  function handleSelectConversation(id: number) {
+    setSelectedId(id);
+    setMobileView("detail");
+  }
+
+  function handleBack() {
+    setMobileView("list");
+  }
+
   return (
     <div className="flex flex-col" style={{ height: "calc(100vh - 0px)" }}>
-      {/* Page header */}
-      <div className="px-8 py-5 border-b border-white/[0.08] flex-shrink-0">
+      {/* Page header — hidden on mobile when viewing detail */}
+      <div className={`px-4 md:px-8 py-4 md:py-5 border-b border-white/[0.08] flex-shrink-0 ${
+        mobileView === "detail" ? "hidden md:block" : ""
+      }`}>
         <div className="flex items-center gap-3">
           <h1 className="text-xl font-bold text-white/90">Appointments</h1>
           {totalUnread > 0 && (
@@ -675,30 +874,36 @@ export default function AdminAppointmentsPage() {
             </span>
           )}
         </div>
-        <p className="text-sm text-white/30 mt-0.5">
+        <p className="text-sm text-white/30 mt-0.5 hidden sm:block">
           Manage client appointment requests and conversations
         </p>
       </div>
 
       {/* Two-panel body */}
-      <div className="flex flex-1 min-h-0">
+      <div className="flex flex-1 min-h-0 relative">
         {/* Left: conversation list */}
-        <div className="w-80 flex-shrink-0 flex flex-col border-r border-white/[0.08]">
+        {/* On mobile: full width, hidden when detail is open */}
+        {/* On desktop: always visible as fixed-width panel */}
+        <div className={`${
+          mobileView === "detail" ? "hidden" : "flex"
+        } md:flex w-full md:w-80 flex-shrink-0 flex-col md:border-r border-white/[0.08]`}>
           {/* Filter tabs */}
-          <div className="flex border-b border-white/[0.08] px-1 bg-white/[0.01]">
+          <div className="flex border-b border-white/[0.08] bg-white/[0.01]">
             {FILTER_TABS.map(({ key, label }) => (
               <button
                 key={key}
                 onClick={() => setFilter(key)}
-                className={`flex-1 py-2.5 text-[11px] font-medium transition-colors capitalize ${
+                className={`flex-1 py-3 text-[12px] font-medium transition-colors capitalize ${
                   filter === key
                     ? "text-neon-cyan border-b-2 border-neon-cyan -mb-px"
-                    : "text-white/35 hover:text-white/60"
+                    : "text-white/40 hover:text-white/70"
                 }`}
               >
                 {label}
                 {counts[key] > 0 && (
-                  <span className="ml-1 text-[10px] text-white/20">({counts[key]})</span>
+                  <span className={`ml-1 text-[11px] ${
+                    filter === key ? "text-neon-cyan/50" : "text-white/25"
+                  }`}>({counts[key]})</span>
                 )}
               </button>
             ))}
@@ -715,18 +920,9 @@ export default function AdminAppointmentsPage() {
             ) : sorted.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-center px-6 py-16">
                 <div className="w-12 h-12 rounded-full bg-white/[0.03] border border-white/[0.06] flex items-center justify-center mb-3">
-                  <svg
-                    className="w-6 h-6 text-white/15"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={1.5}
-                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                    />
+                  <svg className="w-6 h-6 text-white/15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
                 </div>
                 <p className="text-sm text-white/25">No appointments</p>
@@ -740,7 +936,7 @@ export default function AdminAppointmentsPage() {
                   key={conv.appointmentRequestId}
                   conv={conv}
                   isSelected={selectedId === conv.appointmentRequestId}
-                  onClick={() => setSelectedId(conv.appointmentRequestId)}
+                  onClick={() => handleSelectConversation(conv.appointmentRequestId)}
                 />
               ))
             )}
@@ -748,28 +944,34 @@ export default function AdminAppointmentsPage() {
         </div>
 
         {/* Right: detail + chat */}
-        <div className="flex-1 flex flex-col min-w-0 min-h-0">
+        {/* On mobile: full width, only shown when detail is open */}
+        {/* On desktop: always visible as flex-1 */}
+        <div
+          className={`${
+            mobileView === "list" ? "hidden" : "flex"
+          } md:flex flex-1 flex-col min-w-0 min-h-0`}
+          onTouchStart={(e) => { touchStartXRef.current = e.touches[0].clientX; }}
+          onTouchEnd={(e) => {
+            if (touchStartXRef.current === null) return;
+            const dx = touchStartXRef.current - e.changedTouches[0].clientX;
+            touchStartXRef.current = null;
+            // Swipe left ≥ 60px → go back (only on mobile)
+            if (dx >= 60 && mobileView === "detail") handleBack();
+          }}
+        >
           {selectedId !== null ? (
             <AppointmentDetailPanel
               key={selectedId}
               appointmentId={selectedId}
               onConversationUpdate={loadConversations}
+              onBack={handleBack}
             />
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center text-center px-8">
               <div className="w-16 h-16 rounded-full bg-neon-cyan/[0.05] border border-neon-cyan/10 flex items-center justify-center mb-4">
-                <svg
-                  className="w-8 h-8 text-neon-cyan/20"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1.5}
-                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                  />
+                <svg className="w-8 h-8 text-neon-cyan/20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
               </div>
               <p className="text-sm text-white/30">Select an appointment to view details</p>

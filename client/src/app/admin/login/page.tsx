@@ -4,7 +4,6 @@ import { useCallback, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import GlassCard from "@/components/ui/GlassCard";
-import GlowButton from "@/components/ui/GlowButton";
 
 // Google Identity Services button callback is loaded via script tag
 declare global {
@@ -108,6 +107,15 @@ export default function AdminLoginPage() {
         <p className="text-center text-white/20 text-xs">
           Only the owner account can access this dashboard.
         </p>
+
+        <div className="text-center">
+          <a
+            href="/"
+            className="text-white/25 hover:text-white/60 text-xs transition-colors duration-200"
+          >
+            ← Back to main website
+          </a>
+        </div>
       </div>
     </main>
   );

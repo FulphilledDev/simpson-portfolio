@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 
@@ -78,7 +79,7 @@ function AdminSidebar() {
   const { user, logout } = useAuth();
 
   return (
-    <aside className="w-64 flex-shrink-0 flex flex-col bg-[rgba(255,255,255,0.02)] border-r border-white/[0.08]">
+    <aside className="hidden md:flex w-64 flex-shrink-0 flex-col bg-[rgba(255,255,255,0.02)] border-r border-white/[0.08]">
       {/* Logo */}
       <div className="px-6 py-5 border-b border-white/[0.06]">
         <span className="text-gradient-hero text-lg font-bold tracking-wide">PhitDev</span>
@@ -98,7 +99,7 @@ function AdminSidebar() {
               href={item.href}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
                 isActive
-                  ? "bg-neon-cyan/10 text-neon-cyan border border-neon-cyan/20 shadow-[0_0_12px_rgba(0,245,255,0.08)]"
+                  ? "bg-neon-cyan/10 text-neon-cyan border border-neon-cyan/20 shadow-[0_0_12px_rgba(91,200,245,0.08)]"
                   : "text-white/50 hover:text-white/90 hover:bg-white/[0.04] border border-transparent"
               }`}
             >
@@ -132,6 +133,134 @@ function AdminSidebar() {
   );
 }
 
+// ── Mobile bottom navigation ──────────────────────────────────────────────
+
+const primaryNavItems = navItems.filter((item) =>
+  ["/admin", "/admin/appointments", "/admin/settings"].includes(item.href)
+);
+
+const moreNavItems = navItems.filter((item) =>
+  !["/admin", "/admin/appointments", "/admin/settings"].includes(item.href)
+);
+
+function MobileBottomNav() {
+  const pathname = usePathname();
+  const { logout } = useAuth();
+  const [sheetOpen, setSheetOpen] = useState(false);
+
+  const isMoreActive = moreNavItems.some((item) =>
+    item.exact ? pathname === item.href : pathname.startsWith(item.href)
+  );
+
+  return (
+    <>
+      {/* Bottom bar */}
+      <nav
+        className="fixed bottom-0 inset-x-0 z-50 flex md:hidden bg-surface/95 backdrop-blur-xl border-t border-white/[0.10]"
+        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      >
+        {primaryNavItems.map((item) => {
+          const isActive = item.exact
+            ? pathname === item.href
+            : pathname.startsWith(item.href);
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`flex-1 flex flex-col items-center justify-center pt-3 pb-2.5 gap-1.5 text-[11px] font-medium transition-colors duration-200 ${
+                isActive ? "text-neon-cyan" : "text-white/45"
+              }`}
+            >
+              <span className={`p-2 rounded-xl transition-all duration-200 ${isActive ? "bg-neon-cyan/10" : ""}`}>
+                {item.icon}
+              </span>
+              <span className="leading-none">{item.label}</span>
+            </Link>
+          );
+        })}
+
+        {/* More button */}
+        <button
+          onClick={() => setSheetOpen(true)}
+          className={`flex-1 flex flex-col items-center justify-center pt-3 pb-2.5 gap-1.5 text-[11px] font-medium transition-colors duration-200 ${
+            isMoreActive ? "text-neon-cyan" : "text-white/45"
+          }`}
+        >
+          <span className={`p-2 rounded-xl transition-all duration-200 ${isMoreActive ? "bg-neon-cyan/10" : ""}`}>
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+              <circle cx="5" cy="12" r="2" />
+              <circle cx="12" cy="12" r="2" />
+              <circle cx="19" cy="12" r="2" />
+            </svg>
+          </span>
+          <span className="leading-none">More</span>
+        </button>
+      </nav>
+
+      {/* More sheet backdrop */}
+      {sheetOpen && (
+        <div
+          className="fixed inset-0 z-[60] md:hidden bg-black/50 backdrop-blur-sm"
+          onClick={() => setSheetOpen(false)}
+        />
+      )}
+
+      {/* More sheet */}
+      <div
+        className={`fixed inset-x-0 bottom-0 z-[70] md:hidden transition-transform duration-300 ease-out ${
+          sheetOpen ? "translate-y-0" : "translate-y-full"
+        }`}
+        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      >
+        <div className="bg-surface border-t border-white/[0.12] rounded-t-2xl overflow-hidden">
+          {/* Handle */}
+          <div className="flex justify-center pt-3 pb-1">
+            <div className="w-10 h-1 rounded-full bg-white/20" />
+          </div>
+
+          {/* Sheet nav items */}
+          <div className="px-4 py-3 space-y-1">
+            {moreNavItems.map((item) => {
+              const isActive = item.exact
+                ? pathname === item.href
+                : pathname.startsWith(item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setSheetOpen(false)}
+                  className={`flex items-center gap-4 px-4 py-3.5 rounded-xl text-base font-medium transition-all duration-200 ${
+                    isActive
+                      ? "bg-neon-cyan/10 text-neon-cyan border border-neon-cyan/20"
+                      : "text-white/60 hover:bg-white/[0.05] border border-transparent"
+                  }`}
+                >
+                  <span className="w-5 h-5 flex-shrink-0">{item.icon}</span>
+                  {item.label}
+                </Link>
+              );
+            })}
+          </div>
+
+          {/* Divider + Sign Out */}
+          <div className="px-4 pb-4 pt-2 border-t border-white/[0.06] mt-1">
+            <button
+              onClick={() => { setSheetOpen(false); logout(); }}
+              className="w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-base font-medium text-red-400/70 hover:bg-red-500/[0.07] border border-transparent hover:border-red-500/10 transition-all duration-200"
+            >
+              <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+              Sign Out
+            </button>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
 // ── Inner layout (has access to AuthContext) ──────────────────────────────
 
 function AdminLayoutInner({ children }: { children: React.ReactNode }) {
@@ -144,9 +273,10 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-background flex">
       <AdminSidebar />
-      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
+      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto pb-16 md:pb-0">
         {children}
       </div>
+      <MobileBottomNav />
     </div>
   );
 }

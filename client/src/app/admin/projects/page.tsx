@@ -143,93 +143,174 @@ function ProjectRow({
       value={project}
       dragListener={false}
       dragControls={controls}
-      className="flex items-center gap-3 px-4 py-3 border-b border-white/[0.05] hover:bg-white/[0.02] transition-colors"
+      className="border-b border-white/[0.05] hover:bg-white/[0.02] transition-colors"
       style={{ listStyle: "none" }}
     >
-      <DragHandleIcon controls={controls} />
+      {/* ── Mobile card layout (< sm) ── */}
+      <div className="sm:hidden flex flex-col">
+        {/* Thumbnail — full width */}
+        <div className="w-full aspect-video overflow-hidden bg-white/[0.05]">
+          {project.thumbnailUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={project.thumbnailUrl} alt={project.title} className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-neon-cyan/10 to-neon-purple/10" />
+          )}
+        </div>
 
-      {/* Thumbnail */}
-      <div className="w-12 h-8 rounded overflow-hidden flex-shrink-0 bg-white/[0.05]">
-        {project.thumbnailUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={project.thumbnailUrl}
-            alt={project.title}
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <div className="w-full h-full bg-gradient-to-br from-neon-cyan/10 to-neon-purple/10" />
-        )}
+        {/* Info below thumbnail */}
+        <div className="px-3 py-3 space-y-2">
+          {/* Title row + drag handle + actions */}
+          <div className="flex items-start gap-2">
+            <DragHandleIcon controls={controls} />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-white/90 leading-snug">{project.title}</p>
+              <p className="text-[11px] text-white/35 font-mono">/{project.slug}</p>
+            </div>
+            <div className="flex items-center gap-0.5 flex-shrink-0">
+              <button
+                onClick={() => onEdit(project)}
+                className="p-2 rounded-lg text-white/40 hover:text-neon-cyan hover:bg-neon-cyan/10 active:bg-neon-cyan/15 transition-colors"
+                aria-label="Edit project"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+              </button>
+              <button
+                onClick={() => onDelete(project)}
+                className="p-2 rounded-lg text-white/40 hover:text-red-400 hover:bg-red-500/10 active:bg-red-500/15 transition-colors"
+                aria-label="Delete project"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          {/* Status badges */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {project.isFeatured && (
+              <span className="text-[11px] px-2 py-0.5 rounded-full border bg-amber-500/10 border-amber-500/25 text-amber-400">
+                Featured
+              </span>
+            )}
+            <span className={`text-[11px] px-2 py-0.5 rounded-full border ${
+              project.isActive
+                ? "bg-neon-cyan/10 border-neon-cyan/20 text-neon-cyan"
+                : "bg-white/[0.05] border-white/10 text-white/30"
+            }`}>
+              {project.isActive ? "Active" : "Inactive"}
+            </span>
+          </div>
+
+          {/* Tech stack */}
+          {project.techStack.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {project.techStack.slice(0, 5).map((t) => (
+                <span key={t} className="text-[10px] px-1.5 py-0.5 rounded bg-white/[0.06] border border-white/[0.08] text-white/55">
+                  {t}
+                </span>
+              ))}
+              {project.techStack.length > 5 && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/[0.04] text-white/30">
+                  +{project.techStack.length - 5}
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* Short description */}
+          <p className="text-[11px] text-white/45 leading-relaxed line-clamp-2">
+            {project.shortDescription}
+          </p>
+
+          {/* Updated date */}
+          <p className="text-[10px] text-white/20">Updated {formatDate(project.updatedAt)}</p>
+        </div>
       </div>
 
-      {/* Title + slug */}
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-white/90 truncate">{project.title}</p>
-        <p className="text-[11px] text-white/30 truncate">/{project.slug}</p>
-      </div>
+      {/* ── Desktop row layout (sm+) ── */}
+      <div className="hidden sm:flex items-center gap-3 px-4 py-3">
+        <DragHandleIcon controls={controls} />
 
-      {/* Tech stack pills */}
-      <div className="hidden md:flex flex-wrap gap-1 max-w-[200px]">
-        {project.techStack.slice(0, 3).map((t) => (
-          <span
-            key={t}
-            className="text-[10px] px-1.5 py-0.5 rounded bg-white/[0.06] border border-white/[0.08] text-white/50"
-          >
-            {t}
-          </span>
-        ))}
-        {project.techStack.length > 3 && (
-          <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/[0.04] text-white/30">
-            +{project.techStack.length - 3}
-          </span>
-        )}
-      </div>
+        {/* Thumbnail */}
+        <div className="w-12 h-8 rounded overflow-hidden flex-shrink-0 bg-white/[0.05]">
+          {project.thumbnailUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={project.thumbnailUrl} alt={project.title} className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-neon-cyan/10 to-neon-purple/10" />
+          )}
+        </div>
 
-      {/* Status badges */}
-      <div className="flex items-center gap-1.5 flex-shrink-0">
-        {project.isFeatured && (
-          <span className="text-[10px] px-2 py-0.5 rounded-full border bg-amber-500/10 border-amber-500/25 text-amber-400">
-            Featured
-          </span>
-        )}
-        <span
-          className={`text-[10px] px-2 py-0.5 rounded-full border ${
+        {/* Title + slug */}
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-white/90 truncate">{project.title}</p>
+          <p className="text-[11px] text-white/30 truncate">/{project.slug}</p>
+        </div>
+
+        {/* Tech stack pills */}
+        <div className="hidden md:flex flex-wrap gap-1 max-w-[200px]">
+          {project.techStack.slice(0, 3).map((t) => (
+            <span key={t} className="text-[10px] px-1.5 py-0.5 rounded bg-white/[0.06] border border-white/[0.08] text-white/50">
+              {t}
+            </span>
+          ))}
+          {project.techStack.length > 3 && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/[0.04] text-white/30">
+              +{project.techStack.length - 3}
+            </span>
+          )}
+        </div>
+
+        {/* Status badges */}
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          {project.isFeatured && (
+            <span className="text-[10px] px-2 py-0.5 rounded-full border bg-amber-500/10 border-amber-500/25 text-amber-400">
+              Featured
+            </span>
+          )}
+          <span className={`text-[10px] px-2 py-0.5 rounded-full border ${
             project.isActive
               ? "bg-neon-cyan/10 border-neon-cyan/20 text-neon-cyan"
               : "bg-white/[0.05] border-white/10 text-white/30"
-          }`}
-        >
-          {project.isActive ? "Active" : "Inactive"}
+          }`}>
+            {project.isActive ? "Active" : "Inactive"}
+          </span>
+        </div>
+
+        {/* Sort order */}
+        <span className="text-[11px] text-white/25 w-6 text-center flex-shrink-0">
+          {project.sortOrder}
         </span>
-      </div>
 
-      {/* Sort order */}
-      <span className="hidden sm:block text-[11px] text-white/25 w-6 text-center flex-shrink-0">
-        {project.sortOrder}
-      </span>
-
-      {/* Actions */}
-      <div className="flex items-center gap-1 flex-shrink-0">
-        <button
-          onClick={() => onEdit(project)}
-          className="p-1.5 rounded-lg text-white/40 hover:text-neon-cyan hover:bg-neon-cyan/10 transition-colors"
-          aria-label="Edit project"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-          </svg>
-        </button>
-        <button
-          onClick={() => onDelete(project)}
-          className="p-1.5 rounded-lg text-white/40 hover:text-red-400 hover:bg-red-500/10 transition-colors"
-          aria-label="Delete project"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-          </svg>
-        </button>
+        {/* Actions */}
+        <div className="flex items-center gap-1 flex-shrink-0">
+          <button
+            onClick={() => onEdit(project)}
+            className="p-1.5 rounded-lg text-white/40 hover:text-neon-cyan hover:bg-neon-cyan/10 transition-colors"
+            aria-label="Edit project"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+          </button>
+          <button
+            onClick={() => onDelete(project)}
+            className="p-1.5 rounded-lg text-white/40 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+            aria-label="Delete project"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          </button>
+        </div>
       </div>
     </Reorder.Item>
   );
@@ -737,7 +818,7 @@ export default function AdminProjectsPage() {
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
