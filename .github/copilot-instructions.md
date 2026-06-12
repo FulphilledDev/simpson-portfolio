@@ -190,19 +190,24 @@ phitdev-portfolio/
 ### Pages Built
 - `/` — Home: Three.js hero + featured projects grid (skeleton) + CTA card
 - `/admin/login` — Google Sign-In button via GSI SDK
+- `/projects` — Public projects grid; server-rendered, featured badge + visual highlight, tech stack badges, CTA
+- `/projects/[slug]` — Project detail: hero image, long description, tech stack, live/GitHub links, GIF demo section, CTA
+
+### Components Built
+- `ProjectCard` — thumbnail (gradient placeholder fallback), featured badge, tech stack pills, live/GitHub icon links
 
 ### Pages To Build
-- `/projects` — Public projects grid (fetch `GET /api/projects`)
-- `/projects/[slug]` — Project detail with GIF demo, tech stack, links
-- `/book` — Appointment booking form → `POST /api/appointments`
-- `/appointment/chat/[token]` — Tokenized client chat page
-- `/reviews/submit/[token]` — Review submission form
-- `/admin` — Dashboard
-- `/admin/appointments` — Appointment inbox (list + detail + chat with SignalR)
-- `/admin/projects` — Projects CRUD (upload thumbnail/GIF)
-- `/admin/reviews` — Review management (approve/publish)
-- `/admin/availability` — Availability slots + blocked slots
-- `/admin/settings` — Admin settings + profile photo + Google Calendar
+- `/projects` — ✅ Done
+- `/projects/[slug]` — ✅ Done
+- `/book` — ✅ Done (booking form → `POST /api/appointments`)
+- ✅ `/appointment/chat/[token]` — Tokenized client chat page (8s polling, status-aware)
+- ✅ `/reviews/submit/[token]` — Public review form (star rating, 410 if already submitted)
+- ✅ `/admin` — Dashboard (stats cards + recent appointments + quick actions)
+- ✅ `/admin/appointments` — Appointment inbox (list + detail + chat with SignalR)
+- ✅ `/admin/projects` — Projects CRUD (upload thumbnail/GIF)
+- ✅ `/admin/reviews` — Review management (request form, approve/publish toggles, delete)
+- ✅ `/admin/availability` — Availability slots + blocked slots (two-tab: slots calendar list + blocked periods)
+- ✅ `/admin/settings` — Admin settings + profile photo + Google Calendar connect
 
 ---
 
@@ -254,17 +259,15 @@ dotnet ef database update --project src/PhitDevPortfolio.Infrastructure --startu
 
 ## What To Do Next (in order)
 
-1. **Build `/projects` page** — fetch `GET /api/projects`, render `ProjectCard` grid with slug links + tech stack badges; featured toggle
-2. **Build `/projects/[slug]` page** — project detail: GIF demo (`<img>`), full description, tech stack, live/GitHub links
-3. **Build `/book` page** — appointment booking form (name, email, phone, ProjectType select, budget range, message) → `POST /api/appointments`
-4. **Build admin dashboard** (`/admin`) — stats cards: pending appointments, unpublished reviews, total projects
-5. **Build admin appointments** (`/admin/appointments`) — list + detail + SignalR chat panel (mirror fire-and-ice-cream booking chat pattern)
-6. **Build `/appointment/chat/[token]`** — tokenized public client chat page (8s polling fallback + SignalR)
-7. **Build admin projects** (`/admin/projects`) — CRUD table, drag reorder, thumbnail/GIF upload (multipart 50MB)
-8. **Build admin reviews** (`/admin/reviews`) — request form (sends tokenized email), approve/publish toggles
-9. **Build `/reviews/submit/[token]`** — public review form, 410 if already submitted
-10. **Build admin availability** (`/admin/availability`) — slots calendar + blocked slots list
-11. **Build admin settings** (`/admin/settings`) — bio, skills, social links, profile photo, Google Calendar connect
+1. ✅ **`/book` page** — done
+2. ✅ **Build admin dashboard** (`/admin`) — stats cards: pending appointments, unpublished reviews, total projects
+3. ✅ **Build admin appointments** (`/admin/appointments`) — list + detail + SignalR chat panel
+4. ✅ **Build `/appointment/chat/[token]`** — tokenized public client chat page (8s polling)
+5. ✅ **Build admin projects** (`/admin/projects`) — CRUD table, drag reorder, thumbnail/GIF upload (multipart 50MB)
+8. ✅ **Build admin reviews** (`/admin/reviews`) — request form (sends tokenized email), approve/publish toggles
+9. ✅ **Build `/reviews/submit/[token]`** — public review form, 410 if already submitted
+10. ✅ **Build admin availability** (`/admin/availability`) — slots calendar + blocked slots list
+11. ✅ **Build admin settings** (`/admin/settings`) — bio, skills, social links, profile photo, Google Calendar connect
 12. **Deploy API to Azure App Service** — publish + configure all env vars
 13. **Deploy client to Vercel** — import repo, set root to `client/`, add env vars
 
