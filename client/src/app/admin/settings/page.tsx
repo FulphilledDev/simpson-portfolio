@@ -488,7 +488,7 @@ function ResumeManagerSection() {
                   className="px-3 py-3 bg-white/[0.02] border border-neon-cyan/20 border-t-0 rounded-b-xl space-y-2"
                 >
                   <p className="text-[11px] font-semibold text-white/50 uppercase tracking-wider mb-2">
-                    Send "{v.fileName}" as attachment
+                    Send &quot;{v.fileName}&quot; as attachment
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <input

@@ -412,7 +412,7 @@ export default function AvailabilityPage() {
           </GlassCard>
         ) : blocked.length === 0 ? (
           <GlassCard accent="none" padding="lg">
-            <p className="text-white/40 text-sm">No blocked periods. Click "Block Time" to restrict specific dates.</p>
+            <p className="text-white/40 text-sm">No blocked periods. Click &quot;Block Time&quot; to restrict specific dates.</p>
           </GlassCard>
         ) : (
           <GlassCard accent="none" padding="none">

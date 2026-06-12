@@ -455,7 +455,6 @@ function AppointmentDetailPanel({
   }
 
   // Load detail + messages
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     setLoading(true);
     setMessages([]);
@@ -481,10 +480,9 @@ function AppointmentDetailPanel({
       })
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, [appointmentId]);
+  }, [appointmentId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // SignalR — join group and listen for NewMessage
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     let mounted = true;
     let conn: Awaited<ReturnType<typeof startConnection>> | null = null;
@@ -521,7 +519,7 @@ function AppointmentDetailPanel({
         conn.off("NewMessage");
       }
     };
-  }, [appointmentId]);
+  }, [appointmentId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 5s polling fallback — catches any SignalR-missed messages
   useEffect(() => {
