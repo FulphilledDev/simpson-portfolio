@@ -25,6 +25,7 @@ public class AzureOptions
     public string BlobStorageConnectionString { get; set; } = string.Empty;
     public string ProjectsContainerName { get; set; } = "projects";
     public string ProfileContainerName { get; set; } = "profile";
+    public string ResumesContainerName { get; set; } = "resumes";
     public string LocalDevBaseUrl { get; set; } = "http://localhost:5000";
 }
 
@@ -37,4 +38,6 @@ public class GoogleOptions
     public string OwnerEmail { get; set; } = string.Empty;
     /// <summary>AES-256 key (32 bytes, base64 encoded) for encrypting OAuth tokens at rest.</summary>
     public string TokenEncryptionKey { get; set; } = string.Empty;
+    /// <summary>Frontend base URL for post-auth redirect (e.g. "https://myportfolio.com").</summary>
+    public string FrontendBaseUrl { get; set; } = "http://localhost:3000";
 }

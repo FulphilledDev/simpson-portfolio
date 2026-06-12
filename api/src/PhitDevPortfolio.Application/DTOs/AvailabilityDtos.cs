@@ -1,28 +1,25 @@
-using PhitDevPortfolio.Domain.Enums;
-
 namespace PhitDevPortfolio.Application.DTOs;
 
-public record AvailabilitySlotDto(
+/// <summary>Owner's recurring availability for a specific day of the week.</summary>
+public record WeeklyAvailabilityDto(
     int Id,
-    string Title,
-    DateOnly Date,
-    TimeOnly? StartTime,
-    TimeOnly? EndTime,
-    AvailabilitySlotType Type,
-    bool IsPublic,
-    string? Notes,
-    int? AppointmentRequestId
+    DayOfWeek DayOfWeek,
+    TimeOnly StartTime,
+    TimeOnly EndTime,
+    bool IsEnabled
 );
 
-public record UpsertAvailabilitySlotDto(
-    string Title,
-    DateOnly Date,
-    TimeOnly? StartTime,
-    TimeOnly? EndTime,
-    AvailabilitySlotType Type,
-    bool IsPublic,
-    string? Notes,
-    int? AppointmentRequestId
+public record UpsertWeeklyAvailabilityDto(
+    DayOfWeek DayOfWeek,
+    TimeOnly StartTime,
+    TimeOnly EndTime,
+    bool IsEnabled
+);
+
+/// <summary>Available start times returned for a specific calendar date.</summary>
+public record DayAvailabilityDto(
+    bool IsAvailable,
+    IEnumerable<string> AvailableStartTimes  // "HH:mm" format
 );
 
 public record BlockedSlotDto(

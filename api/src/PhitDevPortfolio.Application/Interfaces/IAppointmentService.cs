@@ -8,6 +8,7 @@ public interface IAppointmentService
     Task<AppointmentRequestDto?> GetByIdAsync(int id, CancellationToken ct = default);
     Task<AppointmentRequestDto> CreateAsync(CreateAppointmentRequestDto dto, CancellationToken ct = default);
     Task<AppointmentRequestDto?> RespondAsync(int id, RespondToAppointmentDto dto, CancellationToken ct = default);
+    Task<AppointmentRequestDto?> ScheduleTimeAsync(int id, ScheduleAppointmentTimeDto dto, CancellationToken ct = default);
 }
 
 public interface IAppointmentMessageService

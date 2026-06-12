@@ -14,8 +14,14 @@ public record AppointmentRequestDto(
     DateTimeOffset SubmittedAt,
     DateTimeOffset? RespondedAt,
     string? OwnerNotes,
-    string ClientToken
+    string ClientToken,
+    DateOnly? RequestedDate,
+    TimeOnly? RequestedTime,
+    DateOnly? ScheduledDate,
+    TimeOnly? ScheduledTime
 );
+
+public record ScheduleAppointmentTimeDto(DateOnly Date, TimeOnly Time, int UtcOffsetMinutes = 0);
 
 public record CreateAppointmentRequestDto(
     string Name,
@@ -23,7 +29,9 @@ public record CreateAppointmentRequestDto(
     string? Phone,
     ProjectType ProjectType,
     string? Budget,
-    string Message
+    string Message,
+    DateOnly? RequestedDate,
+    TimeOnly? RequestedTime
 );
 
 public record RespondToAppointmentDto(

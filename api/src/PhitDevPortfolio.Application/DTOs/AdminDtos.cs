@@ -10,7 +10,8 @@ public record AdminSettingsDto(
     string? ResumeUrl,
     string? ProfilePhotoUrl,
     string OwnerName,
-    string OwnerTitle
+    string OwnerTitle,
+    int AppointmentDurationMinutes
 );
 
 public record UpdateAdminSettingsDto(
@@ -20,10 +21,21 @@ public record UpdateAdminSettingsDto(
     string? LinkedInUrl,
     string? GitHubUrl,
     string? TwitterUrl,
-    string? ResumeUrl,
     string OwnerName,
-    string OwnerTitle
+    string OwnerTitle,
+    int AppointmentDurationMinutes
 );
+
+/// <summary>A single uploaded resume file returned to the client.</summary>
+public record ResumeVersionDto(
+    int Id,
+    string FileName,
+    string Url,
+    DateTimeOffset UploadedAt,
+    bool IsActive
+);
+
+public record SendResumeDto(string ToEmail, string ToName);
 
 public record AuthResultDto(
     string Token,
