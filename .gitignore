@@ -8,6 +8,13 @@ obj/
 appsettings.Development.json
 appsettings.Production.json
 
+# Azure deployment artifacts — contain credentials
+api/publish-creds.xml
+api/deploy.zip
+api/app-logs.zip
+api/deploy_response.json
+api/publish/
+
 # Dev uploads
 src/PhitDevPortfolio.API/wwwroot/uploads/
 
