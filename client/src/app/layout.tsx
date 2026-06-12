@@ -14,12 +14,12 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Phillip Simpson — Full-Stack Developer",
+  title: "Philip Simpson — Full-Stack Developer",
   description:
-    "Portfolio of Phillip Simpson, a full-stack developer specializing in .NET, Angular, and React. Available for consulting and project work.",
-  keywords: ["full-stack developer", "Angular", ".NET", "React", "freelance", "Phillip Simpson"],
+    "Portfolio of Philip Simpson, a full-stack developer specializing in .NET, Angular, and React. Available for consulting and project work.",
+  keywords: ["full-stack developer", "Angular", ".NET", "React", "freelance", "Philip Simpson"],
   openGraph: {
-    title: "Phillip Simpson — Full-Stack Developer",
+    title: "Philip Simpson — Full-Stack Developer",
     description: "Full-stack developer specializing in .NET, Angular, and React.",
     url: "https://phitdev.vercel.app",
     siteName: "PhitDev Portfolio",
@@ -28,7 +28,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Phillip Simpson — Full-Stack Developer",
+    title: "Philip Simpson — Full-Stack Developer",
     description: "Full-stack developer specializing in .NET, Angular, and React.",
   },
 };

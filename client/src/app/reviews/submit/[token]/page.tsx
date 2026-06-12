@@ -201,7 +201,7 @@ export default function ReviewSubmitPage() {
           </p>
           <p className="text-white/30 text-xs">
             If you believe this is an error, please contact{" "}
-            <Link href="/" className="text-neon-cyan hover:underline">Phillip Simpson</Link>.
+            <Link href="/" className="text-neon-cyan hover:underline">Philip Simpson</Link>.
           </p>
         </div>
       </main>
@@ -278,7 +278,7 @@ export default function ReviewSubmitPage() {
           </Link>
           <h1 className="text-2xl font-bold text-white">Leave a Review</h1>
           <p className="text-white/40 text-sm">
-            Share your experience working with Phillip Simpson.
+            Share your experience working with Philip Simpson.
           </p>
         </div>
 

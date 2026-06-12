@@ -359,6 +359,7 @@ export default function ClientChatPage() {
   }, [pageState, chat?.status, fetchChat]);
 
   // Auto-scroll when new messages arrive (only if user is near the bottom)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!chat) return;
     if (chat.messages.length > lastMessageCount - 1 && !userScrolledUpRef.current) {
