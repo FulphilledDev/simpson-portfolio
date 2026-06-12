@@ -99,6 +99,21 @@ body {
   .section-container {
     @apply max-w-6xl mx-auto px-4 sm:px-6 lg:px-8;
   }
+
+  /* Form inputs */
+  .form-input {
+    @apply w-full rounded-lg px-4 py-3 text-sm text-white/90 placeholder-white/25 outline-none transition-all duration-200;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  .form-input:focus {
+    border-color: rgba(0, 245, 255, 0.4);
+    box-shadow: 0 0 0 3px rgba(0, 245, 255, 0.08);
+  }
+  .form-input option {
+    background: #0f0f1a;
+    color: #e8e8f0;
+  }
 }
 
 @layer utilities {
