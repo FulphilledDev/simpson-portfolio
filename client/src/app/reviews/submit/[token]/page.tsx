@@ -259,7 +259,7 @@ export default function ReviewSubmitPage() {
             ))}
           </div>
           <Link href="/" className="inline-block text-neon-cyan text-sm hover:underline">
-            ← Back to PhitDev
+            ← Back to Simpson Software
           </Link>
         </div>
       </main>
@@ -274,7 +274,7 @@ export default function ReviewSubmitPage() {
         {/* Header */}
         <div className="text-center space-y-2">
           <Link href="/" className="inline-block mb-4">
-            <span className="text-gradient-hero text-xl font-bold tracking-wide">PhitDev</span>
+            <span className="text-gradient-hero text-xl font-bold tracking-wide">Simpson Software</span>
           </Link>
           <h1 className="text-2xl font-bold text-white">Leave a Review</h1>
           <p className="text-white/40 text-sm">

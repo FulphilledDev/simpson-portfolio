@@ -16,22 +16,22 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Philip Simpson — Full-Stack Developer",
+  title: "Philip Simpson — Software Engineer",
   description:
-    "Portfolio of Philip Simpson, a full-stack developer specializing in .NET, Angular, and React. Available for consulting and project work.",
-  keywords: ["full-stack developer", "Angular", ".NET", "React", "freelance", "Philip Simpson"],
+    "Portfolio of Philip Simpson, a software engineer specializing in .NET, Angular, and React. Available for consulting and project work.",
+  keywords: ["full-stack developer", "software engineer", "Angular", ".NET", "React", "freelance", "Philip Simpson"],
   openGraph: {
-    title: "Philip Simpson — Full-Stack Developer",
-    description: "Full-stack developer specializing in .NET, Angular, and React.",
+    title: "Philip Simpson — Software Engineer",
+    description: "Software engineer specializing in .NET, Angular, and React.",
     url: "https://simpsonsoftware.site",
-    siteName: "PhitDev Portfolio",
+    siteName: "Philip Simpson Portfolio",
     locale: "en_US",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Philip Simpson — Full-Stack Developer",
-    description: "Full-stack developer specializing in .NET, Angular, and React.",
+    title: "Philip Simpson — Software Engineer",
+    description: "Software engineer specializing in .NET, Angular, and React.",
   },
 };
 

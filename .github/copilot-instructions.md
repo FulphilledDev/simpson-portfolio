@@ -99,7 +99,8 @@ phitdev-portfolio/
 - `BlockedSlot` — Id, Start (DateTimeOffset), End (DateTimeOffset), Reason?
 - `Project` — Id, Title, Slug (unique index, URL-safe), ShortDescription, LongDescription?, TechStack (JSON string "[]"), LiveUrl?, GitHubUrl?, ThumbnailUrl, GifDemoUrl?, IsFeatured, IsActive (default true), SortOrder, CreatedAt, UpdatedAt
 - `Review` — Id, ReviewerName, ReviewerTitle?, ReviewerCompany?, Content (MaxLength 1000), Rating (1-5), ReviewToken (GUID, unique index), RequestedAt, SubmittedAt? (single-use: null = unused), IsApproved, IsPublished, SortOrder
-- `AdminSettings` — singleton (Id=1): Bio, Skills (JSON "[]"), ContactEmail, LinkedInUrl?, GitHubUrl?, TwitterUrl?, ResumeUrl?, ProfilePhotoUrl?, OwnerName, OwnerTitle; seeded with OwnerName="Philip Simpson", OwnerTitle="Full-Stack Developer"
+- `AdminSettings` — singleton (Id=1): Bio, Skills (JSON "[]"), ContactEmail, LinkedInUrl?, GitHubUrl?, TwitterUrl?, ResumeUrl? (auto-synced from active ResumeVersion), ProfilePhotoUrl?, OwnerName, OwnerTitle; seeded with OwnerName="Philip Simpson", OwnerTitle="Full-Stack Developer"
+- `ResumeVersion` — Id, FileName, Url, UploadedAt, IsActive (only one active at a time; activating syncs Url → AdminSettings.ResumeUrl; deleting active clears it)
 - `GoogleCalendarConnection` — Id, CalendarId, ConnectedEmail, AccessToken (encrypted), RefreshToken (encrypted), TokenExpiresAt, ConnectedAt, IsActive (indexed), AutoSync
 
 **Enums** (in `Enums/Enums.cs`):
@@ -160,7 +161,7 @@ phitdev-portfolio/
 - `ProjectsController` — public: `GET /api/projects?featuredOnly=true`, `GET /api/projects/{slug}`; auth: admin GET, POST (50MB multipart), PUT, DELETE (soft), PUT reorder
 - `ReviewsController` — public: `GET /api/reviews` (published), `GET/POST /api/reviews/submit/{token}` (410 if used); auth: admin GET, POST request, PUT approve, PUT edit, DELETE
 - `AvailabilityController` + `BlockedSlotsController`
-- `AdminSettingsController` — `GET /api/settings` (public), auth: PUT, POST photo (5MB)
+- `AdminSettingsController` — `GET /api/settings` (public), auth: PUT, POST photo (5MB), GET/POST resumes, PUT resumes/{id}/activate, DELETE resumes/{id}, GET resumes/{id}/download (public), POST resumes/{id}/send (auth)
 - `GoogleCalendarController` — auth: connect (redirect), callback, status, disconnect, sync
 
 **Hub:**
@@ -262,8 +263,6 @@ dotnet ef database update --project src/PhitDevPortfolio.Infrastructure --startu
 2. ✅ **Test email flows** — appointment request, response, chat notifications (both directions), review request all verified working
 3. ✅ **Deploy API to Azure App Service** — deployed to `simpson-software-api`, all env vars configured
 4. **Deploy client to Vercel** — import repo, set root to `client/`, add env vars (`NEXT_PUBLIC_API_URL=https://simpson-software-api-f3cqdsfpedapacbp.westus2-01.azurewebsites.net`)
-
----
 
 ## Deployment
 

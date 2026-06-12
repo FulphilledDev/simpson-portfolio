@@ -16,7 +16,7 @@ async function getProjects(): Promise<Project[]> {
 }
 
 export const metadata = {
-  title: "Projects | PhitDev",
+  title: "Projects | Simpson Software",
   description:
     "Full-stack web applications and APIs built by Philip Simpson.",
 };

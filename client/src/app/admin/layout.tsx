@@ -82,7 +82,7 @@ function AdminSidebar() {
     <aside className="hidden md:flex w-64 flex-shrink-0 flex-col bg-[rgba(255,255,255,0.02)] border-r border-white/[0.08]">
       {/* Logo */}
       <div className="px-6 py-5 border-b border-white/[0.06]">
-        <span className="text-gradient-hero text-lg font-bold tracking-wide">PhitDev</span>
+        <span className="text-gradient-hero text-lg font-bold tracking-wide">Simpson Software</span>
         <p className="text-[11px] text-white/30 mt-0.5 uppercase tracking-widest">Admin Panel</p>
       </div>
 

@@ -78,7 +78,7 @@ function LoginContent() {
       <div className="relative z-10 w-full max-w-sm space-y-6">
         {/* Logo / title */}
         <div className="text-center space-y-2">
-          <div className="text-4xl font-bold text-gradient-hero">PhitDev</div>
+          <div className="text-4xl font-bold text-gradient-hero">Simpson Software</div>
           <p className="text-white/50 text-sm">Admin Dashboard</p>
         </div>
 

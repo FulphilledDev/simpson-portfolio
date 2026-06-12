@@ -93,7 +93,7 @@ function MessageBubble({ msg }: { msg: Message }) {
         className={`max-w-[78%] flex flex-col gap-1 ${isClient ? "items-end" : "items-start"}`}
       >
         {!isClient && (
-          <span className="text-[10px] text-white/25 px-1 mb-0.5">PhitDev</span>
+          <span className="text-[10px] text-white/25 px-1 mb-0.5">Simpson Software</span>
         )}
         <div
           className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
@@ -169,7 +169,7 @@ function ExpiredScreen() {
           href="/"
           className="inline-block mt-2 text-sm text-neon-cyan/60 hover:text-neon-cyan transition-colors"
         >
-          ← Back to PhitDev
+          ← Back to Simpson Software
         </Link>
       </div>
     </CenteredScreen>
@@ -196,7 +196,7 @@ function NotFoundScreen() {
           href="/"
           className="inline-block mt-2 text-sm text-neon-cyan/60 hover:text-neon-cyan transition-colors"
         >
-          ← Back to PhitDev
+          ← Back to Simpson Software
         </Link>
       </div>
     </CenteredScreen>
@@ -439,7 +439,7 @@ export default function ClientChatPage() {
       <header className="flex-shrink-0 border-b border-white/[0.08] bg-[rgba(10,10,15,0.95)] backdrop-blur-xl sticky top-0 z-10">
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
           <Link href="/" className="text-gradient-hero text-base font-bold tracking-wide">
-            PhitDev
+            Simpson Software
           </Link>
           <div className="flex items-center gap-2.5">
             <span className="text-[11px] text-white/35">Appointment Chat</span>

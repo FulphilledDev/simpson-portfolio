@@ -28,8 +28,7 @@ const GlowButton = forwardRef<HTMLButtonElement, GlowButtonProps>(
         disabled={disabled || loading}
         className={twMerge(
           variantMap[variant],
-          // Only override size for non-ghost variants that don't already include padding
-          variant !== "ghost" && variant !== "outline-cyan" && sizeMap[size],
+          sizeMap[size],
           "disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none",
           className
         )}

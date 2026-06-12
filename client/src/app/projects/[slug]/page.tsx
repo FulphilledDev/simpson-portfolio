@@ -30,9 +30,9 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const project = await getProject(slug);
-  if (!project) return { title: "Project Not Found | PhitDev" };
+  if (!project) return { title: "Project Not Found | Simpson Software" };
   return {
-    title: `${project.title} | PhitDev`,
+    title: `${project.title} | Simpson Software`,
     description: project.shortDescription,
   };
 }

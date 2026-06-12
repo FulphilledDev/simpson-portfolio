@@ -34,7 +34,7 @@ export default function GlowLink({
 }: GlowLinkProps) {
   const classes = twMerge(
     variantMap[variant],
-    variant !== "ghost" && variant !== "outline-cyan" && sizeMap[size],
+    sizeMap[size],
     "inline-block",
     className
   );
