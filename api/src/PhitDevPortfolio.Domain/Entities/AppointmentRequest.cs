@@ -21,6 +21,20 @@ public class AppointmentRequest
     /// </summary>
     public string ClientToken { get; set; } = Guid.NewGuid().ToString();
 
+    /// <summary>Requested appointment date selected by the client at submission time.</summary>
+    public DateOnly? RequestedDate { get; set; }
+
+    /// <summary>Requested appointment start time selected by the client at submission time.</summary>
+    public TimeOnly? RequestedTime { get; set; }
+
+    /// <summary>Confirmed appointment date set by the owner.</summary>
+    public DateOnly? ScheduledDate { get; set; }
+
+    /// <summary>Confirmed appointment start time set by the owner.</summary>
+    public TimeOnly? ScheduledTime { get; set; }
+
+    /// <summary>Google Calendar event ID created when the appointment is accepted.</summary>
+    public string? GoogleCalendarEventId { get; set; }
+
     public ICollection<AppointmentMessage> Messages { get; set; } = new List<AppointmentMessage>();
-    public AvailabilitySlot? LinkedSlot { get; set; }
 }

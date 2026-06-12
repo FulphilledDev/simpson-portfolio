@@ -19,4 +19,7 @@ public class AdminSettings
     public string? ProfilePhotoUrl { get; set; }
     public string OwnerName { get; set; } = string.Empty;
     public string OwnerTitle { get; set; } = string.Empty;
+
+    /// <summary>Default appointment duration in minutes (used when creating Google Calendar events).</summary>
+    public int AppointmentDurationMinutes { get; set; } = 30;
 }

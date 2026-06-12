@@ -23,10 +23,4 @@ public enum ProjectType
     Other = 4
 }
 
-public enum AvailabilitySlotType
-{
-    Consultation = 0,
-    FollowUp = 1,
-    ProjectReview = 2,
-    Other = 3
-}
+
