@@ -194,7 +194,7 @@ namespace PhitDevPortfolio.Infrastructure.Migrations
             migrationBuilder.InsertData(
                 table: "AdminSettings",
                 columns: new[] { "Id", "Bio", "ContactEmail", "GitHubUrl", "LinkedInUrl", "OwnerName", "OwnerTitle", "ProfilePhotoUrl", "ResumeUrl", "Skills", "TwitterUrl" },
-                values: new object[] { 1, "", "", null, null, "Phillip Simpson", "Full-Stack Developer", null, null, "[]", null });
+                values: new object[] { 1, "", "", null, null, "Philip Simpson", "Full-Stack Developer", null, null, "[]", null });
 
             migrationBuilder.CreateIndex(
                 name: "IX_AppointmentMessages_AppointmentRequestId",

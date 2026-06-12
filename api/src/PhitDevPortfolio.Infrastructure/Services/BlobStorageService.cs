@@ -30,4 +30,16 @@ public class BlobStorageService(IOptions<AzureOptions> options) : IBlobStorageSe
         var container = client.GetBlobContainerClient(containerName);
         await container.GetBlobClient(blobName).DeleteIfExistsAsync(cancellationToken: ct);
     }
+
+    public async Task<Stream> DownloadAsync(string blobUrl, string containerName, CancellationToken ct = default)
+    {
+        var uri       = new Uri(blobUrl);
+        var blobName  = uri.Segments.Last();
+        var client    = new BlobServiceClient(_connectionString);
+        var container = client.GetBlobContainerClient(containerName);
+        var ms        = new MemoryStream();
+        await container.GetBlobClient(blobName).DownloadToAsync(ms, ct);
+        ms.Position = 0;
+        return ms;
+    }
 }

@@ -25,15 +25,15 @@ public class AdminSettingsService(
     public async Task<AdminSettingsDto> UpdateAsync(UpdateAdminSettingsDto dto, CancellationToken ct = default)
     {
         var settings = await GetOrCreateAsync(ct);
-        settings.Bio         = dto.Bio;
-        settings.Skills      = JsonSerializer.Serialize(dto.Skills);
+        settings.Bio          = dto.Bio;
+        settings.Skills       = JsonSerializer.Serialize(dto.Skills);
         settings.ContactEmail = dto.ContactEmail;
-        settings.LinkedInUrl = dto.LinkedInUrl;
-        settings.GitHubUrl   = dto.GitHubUrl;
-        settings.TwitterUrl  = dto.TwitterUrl;
-        settings.ResumeUrl   = dto.ResumeUrl;
-        settings.OwnerName   = dto.OwnerName;
-        settings.OwnerTitle  = dto.OwnerTitle;
+        settings.LinkedInUrl  = dto.LinkedInUrl;
+        settings.GitHubUrl    = dto.GitHubUrl;
+        settings.TwitterUrl   = dto.TwitterUrl;
+        settings.OwnerName    = dto.OwnerName;
+        settings.OwnerTitle   = dto.OwnerTitle;
+        settings.AppointmentDurationMinutes = dto.AppointmentDurationMinutes;
         await db.SaveChangesAsync(ct);
         return ToDto(settings);
     }
@@ -79,6 +79,7 @@ public class AdminSettingsService(
     {
         var skills = JsonSerializer.Deserialize<IEnumerable<string>>(s.Skills) ?? [];
         return new AdminSettingsDto(s.Bio, skills, s.ContactEmail, s.LinkedInUrl,
-            s.GitHubUrl, s.TwitterUrl, s.ResumeUrl, s.ProfilePhotoUrl, s.OwnerName, s.OwnerTitle);
+            s.GitHubUrl, s.TwitterUrl, s.ResumeUrl, s.ProfilePhotoUrl, s.OwnerName, s.OwnerTitle,
+            s.AppointmentDurationMinutes);
     }
 }

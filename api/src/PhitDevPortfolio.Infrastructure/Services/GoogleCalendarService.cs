@@ -102,34 +102,56 @@ public class GoogleCalendarService(
         await db.SaveChangesAsync(ct);
     }
 
-    public async Task SyncSlotAsync(int slotId, CancellationToken ct = default)
+    public async Task<string?> CreateAppointmentEventAsync(AppointmentRequestDto appointment, int durationMinutes, int utcOffsetMinutes = 0, CancellationToken ct = default)
     {
-        var slot = await db.AvailabilitySlots.FirstOrDefaultAsync(s => s.Id == slotId, ct);
-        if (slot is null) return;
+        // Prefer the owner-confirmed scheduled time; fall back to the client's requested time
+        var date = appointment.ScheduledDate ?? appointment.RequestedDate;
+        var time = appointment.ScheduledTime ?? appointment.RequestedTime;
+
+        if (!date.HasValue || !time.HasValue)
+            return null;
+
+        var service = await GetCalendarServiceAsync(ct);
+        if (service is null) return null;
+
+        var startOffset = new DateTimeOffset(
+            date.Value.ToDateTime(time.Value),
+            TimeSpan.FromMinutes(utcOffsetMinutes));
+
+        var calEvent = new Event
+        {
+            Summary     = $"Consultation: {appointment.Name}",
+            Description = $"Project type: {appointment.ProjectType}\nEmail: {appointment.Email}\nPhone: {appointment.Phone ?? "—"}\n\n{appointment.Message}",
+            Start       = new EventDateTime { DateTimeDateTimeOffset = startOffset },
+            End         = new EventDateTime { DateTimeDateTimeOffset = startOffset.AddMinutes(durationMinutes) }
+        };
+
+        var created = await service.Events.Insert(calEvent, "primary").ExecuteAsync(ct);
+        return created.Id;
+    }
+
+    public async Task UpdateAppointmentEventAsync(string googleEventId, AppointmentRequestDto appointment, int durationMinutes, int utcOffsetMinutes = 0, CancellationToken ct = default)
+    {
+        if (!appointment.ScheduledDate.HasValue || !appointment.ScheduledTime.HasValue)
+            return;
 
         var service = await GetCalendarServiceAsync(ct);
         if (service is null) return;
 
-        var start = slot.StartTime.HasValue
-            ? new EventDateTime { DateTimeDateTimeOffset = new DateTimeOffset(slot.Date.ToDateTime(slot.StartTime.Value), TimeSpan.Zero) }
-            : new EventDateTime { Date = slot.Date.ToString("yyyy-MM-dd") };
+        var startOffset = new DateTimeOffset(
+            appointment.ScheduledDate.Value.ToDateTime(appointment.ScheduledTime.Value),
+            TimeSpan.FromMinutes(utcOffsetMinutes));
 
-        var end = slot.EndTime.HasValue
-            ? new EventDateTime { DateTimeDateTimeOffset = new DateTimeOffset(slot.Date.ToDateTime(slot.EndTime.Value), TimeSpan.Zero) }
-            : start;
-
-        var calEvent = new Event { Summary = slot.Title, Description = slot.Notes, Start = start, End = end };
-
-        if (!string.IsNullOrEmpty(slot.GoogleCalendarEventId))
+        var calEvent = new Event
         {
-            await service.Events.Update(calEvent, "primary", slot.GoogleCalendarEventId).ExecuteAsync(ct);
-        }
-        else
-        {
-            var created = await service.Events.Insert(calEvent, "primary").ExecuteAsync(ct);
-            slot.GoogleCalendarEventId = created.Id;
-            await db.SaveChangesAsync(ct);
-        }
+            Summary     = $"Consultation: {appointment.Name}",
+            Description = $"Project type: {appointment.ProjectType}\nEmail: {appointment.Email}\nPhone: {appointment.Phone ?? "—"}\n\n{appointment.Message}",
+            Start       = new EventDateTime { DateTimeDateTimeOffset = startOffset },
+            End         = new EventDateTime { DateTimeDateTimeOffset = startOffset.AddMinutes(durationMinutes) }
+        };
+
+        try { await service.Events.Update(calEvent, "primary", googleEventId).ExecuteAsync(ct); }
+        catch (Exception ex) { logger.LogWarning(ex, "Failed to update Google Calendar event {Id}", googleEventId); }
     }
 
     public async Task DeleteEventAsync(string googleEventId, CancellationToken ct = default)

@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using PhitDevPortfolio.Domain.Entities;
-using PhitDevPortfolio.Domain.Enums;
 
 namespace PhitDevPortfolio.Infrastructure.Persistence;
 
@@ -8,11 +7,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 {
     public DbSet<AppointmentRequest> AppointmentRequests => Set<AppointmentRequest>();
     public DbSet<AppointmentMessage> AppointmentMessages => Set<AppointmentMessage>();
-    public DbSet<AvailabilitySlot> AvailabilitySlots => Set<AvailabilitySlot>();
+    public DbSet<WeeklyAvailability> WeeklyAvailabilities => Set<WeeklyAvailability>();
     public DbSet<BlockedSlot> BlockedSlots => Set<BlockedSlot>();
     public DbSet<Project> Projects => Set<Project>();
     public DbSet<Review> Reviews => Set<Review>();
     public DbSet<AdminSettings> AdminSettings => Set<AdminSettings>();
+    public DbSet<ResumeVersion> ResumeVersions => Set<ResumeVersion>();
     public DbSet<GoogleCalendarConnection> GoogleCalendarConnections => Set<GoogleCalendarConnection>();
 
     protected override void OnModelCreating(ModelBuilder builder)
@@ -37,10 +37,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.Property(x => x.Sender).HasConversion<string>().HasMaxLength(20);
         });
 
-        // AvailabilitySlot
-        builder.Entity<AvailabilitySlot>(e =>
+        // WeeklyAvailability — one record per day of week
+        builder.Entity<WeeklyAvailability>(e =>
         {
-            e.Property(x => x.Type).HasConversion<string>().HasMaxLength(30);
+            e.HasIndex(x => x.DayOfWeek).IsUnique();
+            e.Property(x => x.DayOfWeek).HasConversion<int>();
         });
 
         // Project — slug must be unique
@@ -64,9 +65,16 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
                 Bio = string.Empty,
                 Skills = "[]",
                 ContactEmail = string.Empty,
-                OwnerName = "Phillip Simpson",
-                OwnerTitle = "Full-Stack Developer"
+                OwnerName = "Philip Simpson",
+                OwnerTitle = "Full-Stack Developer",
+                AppointmentDurationMinutes = 30
             });
+        });
+
+        // ResumeVersion
+        builder.Entity<ResumeVersion>(e =>
+        {
+            e.HasIndex(x => x.IsActive).HasFilter("\"IsActive\" = true");
         });
 
         // GoogleCalendarConnection — soft-delete via IsActive

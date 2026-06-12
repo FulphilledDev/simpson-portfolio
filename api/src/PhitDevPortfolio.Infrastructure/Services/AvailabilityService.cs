@@ -6,85 +6,88 @@ using PhitDevPortfolio.Infrastructure.Persistence;
 
 namespace PhitDevPortfolio.Infrastructure.Services;
 
-public class AvailabilityService(AppDbContext db, IGoogleCalendarService gcal) : IAvailabilityService
+public class WeeklyAvailabilityService(AppDbContext db) : IWeeklyAvailabilityService
 {
-    public async Task<IEnumerable<AvailabilitySlotDto>> GetAllAsync(bool publicOnly = false, CancellationToken ct = default)
+    public async Task<IEnumerable<WeeklyAvailabilityDto>> GetAllAsync(CancellationToken ct = default)
     {
-        var query = db.AvailabilitySlots.AsNoTracking();
-        if (publicOnly) query = query.Where(s => s.IsPublic);
-        var items = await query.OrderBy(s => s.Date).ThenBy(s => s.StartTime).ToListAsync(ct);
+        var items = await db.WeeklyAvailabilities.AsNoTracking()
+            .OrderBy(w => w.DayOfWeek)
+            .ToListAsync(ct);
         return items.Select(ToDto);
     }
 
-    public async Task<AvailabilitySlotDto?> GetByIdAsync(int id, CancellationToken ct = default)
+    public async Task<WeeklyAvailabilityDto?> GetByIdAsync(int id, CancellationToken ct = default)
     {
-        var item = await db.AvailabilitySlots.AsNoTracking().FirstOrDefaultAsync(s => s.Id == id, ct);
+        var item = await db.WeeklyAvailabilities.AsNoTracking().FirstOrDefaultAsync(w => w.Id == id, ct);
         return item is null ? null : ToDto(item);
     }
 
-    public async Task<AvailabilitySlotDto> CreateAsync(UpsertAvailabilitySlotDto dto, CancellationToken ct = default)
+    public async Task<WeeklyAvailabilityDto> UpsertAsync(UpsertWeeklyAvailabilityDto dto, CancellationToken ct = default)
     {
-        var entity = Map(new AvailabilitySlot(), dto);
-        db.AvailabilitySlots.Add(entity);
-        await db.SaveChangesAsync(ct);
-
-        if (await gcal.IsAutoSyncEnabledAsync(ct))
+        var entity = await db.WeeklyAvailabilities.FirstOrDefaultAsync(w => w.DayOfWeek == dto.DayOfWeek, ct);
+        if (entity is null)
         {
-            try { await gcal.SyncSlotAsync(entity.Id, ct); }
-            catch { /* sync failure is non-fatal */ }
+            entity = new WeeklyAvailability();
+            db.WeeklyAvailabilities.Add(entity);
         }
 
-        return ToDto(entity);
-    }
-
-    public async Task<AvailabilitySlotDto?> UpdateAsync(int id, UpsertAvailabilitySlotDto dto, CancellationToken ct = default)
-    {
-        var entity = await db.AvailabilitySlots.FirstOrDefaultAsync(s => s.Id == id, ct);
-        if (entity is null) return null;
-
-        Map(entity, dto);
+        entity.DayOfWeek = dto.DayOfWeek;
+        entity.StartTime = dto.StartTime;
+        entity.EndTime   = dto.EndTime;
+        entity.IsEnabled = dto.IsEnabled;
         await db.SaveChangesAsync(ct);
-
-        if (await gcal.IsAutoSyncEnabledAsync(ct))
-        {
-            try { await gcal.SyncSlotAsync(entity.Id, ct); }
-            catch { /* sync failure is non-fatal */ }
-        }
-
         return ToDto(entity);
     }
 
     public async Task<bool> DeleteAsync(int id, CancellationToken ct = default)
     {
-        var entity = await db.AvailabilitySlots.FirstOrDefaultAsync(s => s.Id == id, ct);
+        var entity = await db.WeeklyAvailabilities.FirstOrDefaultAsync(w => w.Id == id, ct);
         if (entity is null) return false;
-
-        if (!string.IsNullOrEmpty(entity.GoogleCalendarEventId))
-        {
-            try { await gcal.DeleteEventAsync(entity.GoogleCalendarEventId, ct); }
-            catch { /* non-fatal */ }
-        }
-
-        db.AvailabilitySlots.Remove(entity);
+        db.WeeklyAvailabilities.Remove(entity);
         await db.SaveChangesAsync(ct);
         return true;
     }
 
-    private static AvailabilitySlot Map(AvailabilitySlot entity, UpsertAvailabilitySlotDto dto)
+    public async Task<DayAvailabilityDto> GetAvailableTimesForDateAsync(DateOnly date, CancellationToken ct = default)
     {
-        entity.Title                = dto.Title;
-        entity.Date                 = dto.Date;
-        entity.StartTime            = dto.StartTime;
-        entity.EndTime              = dto.EndTime;
-        entity.Type                 = dto.Type;
-        entity.IsPublic             = dto.IsPublic;
-        entity.Notes                = dto.Notes;
-        entity.AppointmentRequestId = dto.AppointmentRequestId;
-        return entity;
+        var dayOfWeek = date.DayOfWeek;
+
+        var rule = await db.WeeklyAvailabilities
+            .AsNoTracking()
+            .FirstOrDefaultAsync(w => w.DayOfWeek == dayOfWeek && w.IsEnabled, ct);
+
+        if (rule is null)
+            return new DayAvailabilityDto(false, Array.Empty<string>());
+
+        var settings = await db.AdminSettings.AsNoTracking().FirstOrDefaultAsync(s => s.Id == 1, ct);
+        var durationMinutes = settings?.AppointmentDurationMinutes ?? 30;
+
+        var dayStart = new DateTimeOffset(date.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
+        var dayEnd   = new DateTimeOffset(date.ToDateTime(TimeOnly.MaxValue), TimeSpan.Zero);
+        var blocked  = await db.BlockedSlots
+            .AsNoTracking()
+            .Where(b => b.Start < dayEnd && b.End > dayStart)
+            .ToListAsync(ct);
+
+        var startTimes = new List<string>();
+        var cursor = rule.StartTime;
+        var windowEnd = rule.EndTime.AddMinutes(-durationMinutes);
+
+        while (cursor <= windowEnd)
+        {
+            var slotStart = new DateTimeOffset(date.ToDateTime(cursor), TimeSpan.Zero);
+            var slotEnd   = slotStart.AddMinutes(durationMinutes);
+            var isBlocked = blocked.Any(b => b.Start < slotEnd && b.End > slotStart);
+            if (isBlocked == false)
+                startTimes.Add(cursor.ToString("HH:mm"));
+            cursor = cursor.AddMinutes(durationMinutes);
+        }
+
+        return new DayAvailabilityDto(startTimes.Count > 0, startTimes);
     }
 
-    private static AvailabilitySlotDto ToDto(AvailabilitySlot s) =>
-        new(s.Id, s.Title, s.Date, s.StartTime, s.EndTime, s.Type, s.IsPublic, s.Notes, s.AppointmentRequestId);
+    private static WeeklyAvailabilityDto ToDto(WeeklyAvailability w) =>
+        new(w.Id, w.DayOfWeek, w.StartTime, w.EndTime, w.IsEnabled);
 }
 
 public class BlockedSlotService(AppDbContext db) : IBlockedSlotService
@@ -123,5 +126,6 @@ public class BlockedSlotService(AppDbContext db) : IBlockedSlotService
         return true;
     }
 
-    private static BlockedSlotDto ToDto(BlockedSlot s) => new(s.Id, s.Start, s.End, s.Reason);
+    private static BlockedSlotDto ToDto(BlockedSlot s) =>
+        new(s.Id, s.Start, s.End, s.Reason);
 }

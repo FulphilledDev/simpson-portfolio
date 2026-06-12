@@ -12,8 +12,8 @@ using PhitDevPortfolio.Infrastructure.Persistence;
 namespace PhitDevPortfolio.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260612023532_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20260612194944_WeeklyAvailabilitySchedule")]
+    partial class WeeklyAvailabilitySchedule
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -32,6 +32,9 @@ namespace PhitDevPortfolio.Infrastructure.Migrations
                         .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AppointmentDurationMinutes")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Bio")
                         .IsRequired()
@@ -77,6 +80,7 @@ namespace PhitDevPortfolio.Infrastructure.Migrations
                         new
                         {
                             Id = 1,
+                            AppointmentDurationMinutes = 30,
                             Bio = "",
                             ContactEmail = "",
                             OwnerName = "Philip Simpson",
@@ -141,6 +145,9 @@ namespace PhitDevPortfolio.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("GoogleCalendarEventId")
+                        .HasColumnType("text");
+
                     b.Property<string>("Message")
                         .IsRequired()
                         .HasColumnType("text");
@@ -160,6 +167,12 @@ namespace PhitDevPortfolio.Infrastructure.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)");
 
+                    b.Property<DateOnly?>("RequestedDate")
+                        .HasColumnType("date");
+
+                    b.Property<TimeOnly?>("RequestedTime")
+                        .HasColumnType("time without time zone");
+
                     b.Property<DateTimeOffset?>("RespondedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -177,52 +190,6 @@ namespace PhitDevPortfolio.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("AppointmentRequests");
-                });
-
-            modelBuilder.Entity("PhitDevPortfolio.Domain.Entities.AvailabilitySlot", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int?>("AppointmentRequestId")
-                        .HasColumnType("integer");
-
-                    b.Property<DateOnly>("Date")
-                        .HasColumnType("date");
-
-                    b.Property<TimeOnly?>("EndTime")
-                        .HasColumnType("time without time zone");
-
-                    b.Property<string>("GoogleCalendarEventId")
-                        .HasColumnType("text");
-
-                    b.Property<bool>("IsPublic")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Notes")
-                        .HasColumnType("text");
-
-                    b.Property<TimeOnly?>("StartTime")
-                        .HasColumnType("time without time zone");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AppointmentRequestId")
-                        .IsUnique();
-
-                    b.ToTable("AvailabilitySlots");
                 });
 
             modelBuilder.Entity("PhitDevPortfolio.Domain.Entities.BlockedSlot", b =>
@@ -406,6 +373,34 @@ namespace PhitDevPortfolio.Infrastructure.Migrations
                     b.ToTable("Reviews");
                 });
 
+            modelBuilder.Entity("PhitDevPortfolio.Domain.Entities.WeeklyAvailability", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("DayOfWeek")
+                        .HasColumnType("integer");
+
+                    b.Property<TimeOnly>("EndTime")
+                        .HasColumnType("time without time zone");
+
+                    b.Property<bool>("IsEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<TimeOnly>("StartTime")
+                        .HasColumnType("time without time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DayOfWeek")
+                        .IsUnique();
+
+                    b.ToTable("WeeklyAvailabilities");
+                });
+
             modelBuilder.Entity("PhitDevPortfolio.Domain.Entities.AppointmentMessage", b =>
                 {
                     b.HasOne("PhitDevPortfolio.Domain.Entities.AppointmentRequest", "AppointmentRequest")
@@ -417,19 +412,8 @@ namespace PhitDevPortfolio.Infrastructure.Migrations
                     b.Navigation("AppointmentRequest");
                 });
 
-            modelBuilder.Entity("PhitDevPortfolio.Domain.Entities.AvailabilitySlot", b =>
-                {
-                    b.HasOne("PhitDevPortfolio.Domain.Entities.AppointmentRequest", "AppointmentRequest")
-                        .WithOne("LinkedSlot")
-                        .HasForeignKey("PhitDevPortfolio.Domain.Entities.AvailabilitySlot", "AppointmentRequestId");
-
-                    b.Navigation("AppointmentRequest");
-                });
-
             modelBuilder.Entity("PhitDevPortfolio.Domain.Entities.AppointmentRequest", b =>
                 {
-                    b.Navigation("LinkedSlot");
-
                     b.Navigation("Messages");
                 });
 #pragma warning restore 612, 618
