@@ -7,38 +7,35 @@ namespace PhitDevPortfolio.API.Controllers;
 
 [ApiController]
 [Route("api/availability")]
-public class AvailabilityController(IAvailabilityService availability) : ControllerBase
+public class AvailabilityController(IWeeklyAvailabilityService availability) : ControllerBase
 {
-    [HttpGet]
-    public async Task<IActionResult> GetAll(CancellationToken ct) =>
-        Ok(await availability.GetAllAsync(publicOnly: true, ct));
+    /// <summary>Get the owner's weekly availability schedule (public).</summary>
+    [HttpGet("schedule")]
+    public async Task<IActionResult> GetSchedule(CancellationToken ct) =>
+        Ok(await availability.GetAllAsync(ct));
 
-    [Authorize]
-    [HttpGet("admin")]
-    public async Task<IActionResult> GetAllAdmin(CancellationToken ct) =>
-        Ok(await availability.GetAllAsync(publicOnly: false, ct));
+    /// <summary>
+    /// Get available start times for a specific date (public).
+    /// Respects weekly availability rules and blocked periods.
+    /// </summary>
+    [HttpGet("slots")]
+    public async Task<IActionResult> GetSlotsForDate([FromQuery] string date, CancellationToken ct)
+    {
+        if (!DateOnly.TryParse(date, out var parsed))
+            return BadRequest("Invalid date format. Use yyyy-MM-dd.");
+        return Ok(await availability.GetAvailableTimesForDateAsync(parsed, ct));
+    }
 
     [Authorize]
     [HttpPost]
-    public async Task<IActionResult> Create([FromBody] UpsertAvailabilitySlotDto dto, CancellationToken ct)
-    {
-        var result = await availability.CreateAsync(dto, ct);
-        return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
-    }
+    public async Task<IActionResult> Upsert([FromBody] UpsertWeeklyAvailabilityDto dto, CancellationToken ct) =>
+        Ok(await availability.UpsertAsync(dto, ct));
 
     [Authorize]
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id, CancellationToken ct)
     {
         var result = await availability.GetByIdAsync(id, ct);
-        return result is null ? NotFound() : Ok(result);
-    }
-
-    [Authorize]
-    [HttpPut("{id:int}")]
-    public async Task<IActionResult> Update(int id, [FromBody] UpsertAvailabilitySlotDto dto, CancellationToken ct)
-    {
-        var result = await availability.UpdateAsync(id, dto, ct);
         return result is null ? NotFound() : Ok(result);
     }
 

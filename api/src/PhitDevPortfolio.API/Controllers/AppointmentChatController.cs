@@ -11,6 +11,8 @@ namespace PhitDevPortfolio.API.Controllers;
 [Route("api/appointments/chat")]
 public class AppointmentChatController(
     IAppointmentMessageService messages,
+    IAppointmentService appointments,
+    IEmailService email,
     IHubContext<AppointmentChatHub> hub) : ControllerBase
 {
     [HttpGet("{token}")]
@@ -37,6 +39,11 @@ public class AppointmentChatController(
             .SendAsync("NewMessage", msg, ct);
 
         await messages.MarkReadByClientAsync(chat.AppointmentRequestId, ct);
+
+        var appt = await appointments.GetByIdAsync(chat.AppointmentRequestId, ct);
+        if (appt is not null)
+            _ = email.SendOwnerNewMessageNotificationAsync(appt, ct);
+
         return Ok(msg);
     }
 }

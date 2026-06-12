@@ -7,7 +7,9 @@ namespace PhitDevPortfolio.API.Controllers;
 
 [ApiController]
 [Route("api/settings")]
-public class AdminSettingsController(IAdminSettingsService settingsService) : ControllerBase
+public class AdminSettingsController(
+    IAdminSettingsService settingsService,
+    IResumeVersionService resumeService) : ControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> Get(CancellationToken ct) =>
@@ -30,4 +32,93 @@ public class AdminSettingsController(IAdminSettingsService settingsService) : Co
         var result = await settingsService.UpdateProfilePhotoAsync(photo.OpenReadStream(), photo.FileName, photo.ContentType, ct);
         return Ok(result);
     }
+
+    // ── Resume version endpoints ──────────────────────────────────────────────
+
+    [Authorize]
+    [HttpGet("resumes")]
+    public async Task<IActionResult> GetResumes(CancellationToken ct) =>
+        Ok(await resumeService.GetAllAsync(ct));
+
+    [Authorize]
+    [HttpPost("resumes")]
+    [RequestSizeLimit(30 * 1024 * 1024)] // 30 MB
+    public async Task<IActionResult> UploadResume(IFormFile? resume, CancellationToken ct)
+    {
+        if (resume is null || resume.Length == 0) return BadRequest("No file provided.");
+        var allowed = new[]
+        {
+            "application/pdf",
+            "application/msword",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        };
+        if (!allowed.Contains(resume.ContentType))
+            return BadRequest("Only PDF, DOC, or DOCX files are accepted.");
+
+        var result = await resumeService.UploadAsync(resume.OpenReadStream(), resume.FileName, resume.ContentType, ct);
+        return CreatedAtAction(nameof(GetResumes), result);
+    }
+
+    [Authorize]
+    [HttpPut("resumes/{id:int}/activate")]
+    public async Task<IActionResult> ActivateResume(int id, CancellationToken ct)
+    {
+        try
+        {
+            var result = await resumeService.SetActiveAsync(id, ct);
+            return Ok(result);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ex.Message);
+        }
+    }
+
+    [Authorize]
+    [HttpDelete("resumes/{id:int}")]
+    public async Task<IActionResult> DeleteResume(int id, CancellationToken ct)
+    {
+        try
+        {
+            await resumeService.DeleteAsync(id, ct);
+            return NoContent();
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ex.Message);
+        }
+    }
+
+    [AllowAnonymous]
+    [HttpGet("resumes/{id:int}/download")]
+    public async Task<IActionResult> DownloadResume(int id, CancellationToken ct)
+    {
+        try
+        {
+            var (stream, fileName, contentType) = await resumeService.GetDownloadStreamAsync(id, ct);
+            return File(stream, contentType, fileName);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ex.Message);
+        }
+    }
+
+    [Authorize]
+    [HttpPost("resumes/{id:int}/send")]
+    public async Task<IActionResult> SendResume(int id, [FromBody] SendResumeDto dto, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(dto.ToEmail))
+            return BadRequest("Recipient email is required.");
+        try
+        {
+            await resumeService.SendByEmailAsync(id, dto.ToEmail.Trim(), dto.ToName?.Trim() ?? string.Empty, ct);
+            return NoContent();
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ex.Message);
+        }
+    }
 }
+

@@ -46,7 +46,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             {
                 var token = ctx.Request.Query["access_token"];
                 var path  = ctx.HttpContext.Request.Path;
-                if (!string.IsNullOrEmpty(token) && path.StartsWithSegments("/hubs"))
+                if (!string.IsNullOrEmpty(token) &&
+                    (path.StartsWithSegments("/hubs") ||
+                     path.StartsWithSegments("/api/googlecalendar/connect")))
                     ctx.Token = token;
                 return Task.CompletedTask;
             }
@@ -64,7 +66,10 @@ builder.Services.AddCors(opts => opts.AddDefaultPolicy(policy =>
           .AllowCredentials()));
 
 // ── SignalR ───────────────────────────────────────────────────────────────────
-builder.Services.AddSignalR();
+builder.Services.AddSignalR()
+    .AddJsonProtocol(opts =>
+        opts.PayloadSerializerOptions.PropertyNamingPolicy =
+            System.Text.Json.JsonNamingPolicy.CamelCase);
 
 // ── HttpClient (Google OAuth token exchange) ──────────────────────────────────
 builder.Services.AddHttpClient();
@@ -74,12 +79,13 @@ builder.Services.AddScoped<ITokenService,              TokenService>();
 builder.Services.AddScoped<IEmailService,              EmailService>();
 builder.Services.AddScoped<IBlobStorageService,        BlobStorageService>();
 builder.Services.AddScoped<IAdminSettingsService,      AdminSettingsService>();
+builder.Services.AddScoped<IResumeVersionService,      ResumeVersionService>();
 builder.Services.AddScoped<IAppointmentService,        AppointmentService>();
 builder.Services.AddScoped<IAppointmentMessageService, AppointmentMessageService>();
 builder.Services.AddScoped<IProjectService,            ProjectService>();
 builder.Services.AddScoped<IReviewService,             ReviewService>();
-builder.Services.AddScoped<IAvailabilityService,       AvailabilityService>();
-builder.Services.AddScoped<IBlockedSlotService,        BlockedSlotService>();
+builder.Services.AddScoped<IWeeklyAvailabilityService,    WeeklyAvailabilityService>();
+builder.Services.AddScoped<IBlockedSlotService,           BlockedSlotService>();
 builder.Services.AddScoped<IGoogleCalendarService,     GoogleCalendarService>();
 
 // ── Swagger ───────────────────────────────────────────────────────────────────

@@ -12,6 +12,7 @@ namespace PhitDevPortfolio.API.Controllers;
 public class AppointmentsController(
     IAppointmentService appointments,
     IAppointmentMessageService messages,
+    IEmailService email,
     IHubContext<AppointmentChatHub> hub) : ControllerBase
 {
     // ── Public ────────────────────────────────────────────────────────────────
@@ -47,6 +48,14 @@ public class AppointmentsController(
     }
 
     [Authorize]
+    [HttpPatch("{id:int}/schedule")]
+    public async Task<IActionResult> ScheduleTime(int id, [FromBody] ScheduleAppointmentTimeDto dto, CancellationToken ct)
+    {
+        var result = await appointments.ScheduleTimeAsync(id, dto, ct);
+        return result is null ? NotFound() : Ok(result);
+    }
+
+    [Authorize]
     [HttpGet("conversations")]
     public async Task<IActionResult> GetConversations(CancellationToken ct) =>
         Ok(await messages.GetConversationsAsync(ct));
@@ -62,6 +71,11 @@ public class AppointmentsController(
     {
         var msg = await messages.CreateOwnerMessageAsync(id, dto.Content, ct);
         await hub.Clients.Group(AppointmentChatHub.GroupName(id)).SendAsync("NewMessage", msg, ct);
+
+        var appt = await appointments.GetByIdAsync(id, ct);
+        if (appt is not null)
+            _ = email.SendClientNewMessageNotificationAsync(appt, ct);
+
         return Ok(msg);
     }
 
