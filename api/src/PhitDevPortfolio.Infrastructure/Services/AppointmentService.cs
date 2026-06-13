@@ -40,6 +40,7 @@ public class AppointmentService(
             Name          = dto.Name,
             Email         = dto.Email,
             Phone         = dto.Phone,
+            CompanyName   = dto.CompanyName,
             ProjectType   = dto.ProjectType,
             Budget        = dto.Budget,
             Message       = dto.Message,
@@ -169,7 +170,7 @@ public class AppointmentService(
     }
 
     internal static AppointmentRequestDto ToDto(AppointmentRequest e) => new(
-        e.Id, e.Name, e.Email, e.Phone, e.ProjectType, e.Budget,
+        e.Id, e.Name, e.Email, e.Phone, e.CompanyName, e.ProjectType, e.Budget,
         e.Message, e.Status, e.SubmittedAt, e.RespondedAt, e.OwnerNotes, e.ClientToken,
-        e.RequestedDate, e.RequestedTime, e.ScheduledDate, e.ScheduledTime);
+        e.RequestedDate, e.RequestedTime, e.ScheduledDate, e.ScheduledTime, e.SavedContactId);
 }

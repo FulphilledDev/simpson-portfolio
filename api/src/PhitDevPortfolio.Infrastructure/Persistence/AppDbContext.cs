@@ -7,6 +7,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 {
     public DbSet<AppointmentRequest> AppointmentRequests => Set<AppointmentRequest>();
     public DbSet<AppointmentMessage> AppointmentMessages => Set<AppointmentMessage>();
+    public DbSet<Contact> Contacts => Set<Contact>();
+    public DbSet<ProjectContact> ProjectContacts => Set<ProjectContact>();
     public DbSet<WeeklyAvailability> WeeklyAvailabilities => Set<WeeklyAvailability>();
     public DbSet<BlockedSlot> BlockedSlots => Set<BlockedSlot>();
     public DbSet<Project> Projects => Set<Project>();
@@ -54,6 +56,45 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         builder.Entity<Review>(e =>
         {
             e.HasIndex(x => x.ReviewToken).IsUnique();
+            // A contact can only leave one review per project
+            e.HasIndex(x => new { x.ContactId, x.ProjectId })
+             .IsUnique()
+             .HasFilter("\"ProjectId\" IS NOT NULL");
+            e.HasOne(x => x.Project).WithMany().HasForeignKey(x => x.ProjectId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(x => x.Contact).WithMany(c => c.Reviews).HasForeignKey(x => x.ContactId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // Contact
+        builder.Entity<Contact>(e =>
+        {
+            // Contact.AppointmentRequestId → the appointment this contact was sourced from
+            e.HasOne(x => x.AppointmentRequest)
+             .WithMany()
+             .HasForeignKey(x => x.AppointmentRequestId)
+             .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // AppointmentRequest.SavedContactId → the contact created from this appointment
+        builder.Entity<AppointmentRequest>(e =>
+        {
+            e.HasOne(x => x.SavedContact)
+             .WithMany()
+             .HasForeignKey(x => x.SavedContactId)
+             .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // ProjectContact — composite PK, many-to-many
+        builder.Entity<ProjectContact>(e =>
+        {
+            e.HasKey(x => new { x.ProjectId, x.ContactId });
+            e.HasOne(x => x.Project)
+             .WithMany(p => p.ProjectContacts)
+             .HasForeignKey(x => x.ProjectId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.Contact)
+             .WithMany(c => c.ProjectContacts)
+             .HasForeignKey(x => x.ContactId)
+             .OnDelete(DeleteBehavior.Cascade);
         });
 
         // AdminSettings — singleton, Id always = 1
