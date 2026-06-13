@@ -136,7 +136,9 @@ export default function BookPage() {
     }
   }
 
-  const enabledDays = schedule.map((s) => DAY_NAMES[s.dayOfWeek]).join(", ");
+  const enabledDays = schedule.length > 0
+    ? schedule.map((s) => DAY_NAMES[s.dayOfWeek]).join(", ")
+    : null;
 
   if (submitted) {
     return (
