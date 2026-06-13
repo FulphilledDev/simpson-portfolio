@@ -393,9 +393,6 @@ export default async function ProjectDetailPage({
             <Link href="/book" className="inline-block btn-glow-cyan text-lg px-8 py-4">
               Book a Consultation
             </Link>
-            <Link href="/projects" className="inline-block btn-outline-cyan px-8 py-4">
-              ← Back to Projects
-            </Link>
           </div>
         </div>
       </section>
