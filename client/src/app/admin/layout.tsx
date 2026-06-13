@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import Image from "next/image";
+import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 
@@ -74,16 +75,44 @@ const navItems = [
 
 // ── Sidebar (needs useAuth, must be inside AuthProvider) ──────────────────
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5149";
+
 function AdminSidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
+  const [companyName, setCompanyName] = useState("Simpson Software");
+  const [companyLogoUrl, setCompanyLogoUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch(`${API_URL}/api/settings`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        if (!data) return;
+        if (data.companyName) setCompanyName(data.companyName);
+        if (data.companyLogoUrl) setCompanyLogoUrl(data.companyLogoUrl);
+      })
+      .catch(() => {});
+  }, []);
 
   return (
     <aside className="hidden md:flex w-64 flex-shrink-0 flex-col bg-[rgba(255,255,255,0.02)] border-r border-white/[0.08]">
       {/* Logo */}
       <div className="px-6 py-5 border-b border-white/[0.06]">
-        <span className="text-gradient-hero text-lg font-bold tracking-wide">Simpson Software</span>
-        <p className="text-[11px] text-white/30 mt-0.5 uppercase tracking-widest">Admin Panel</p>
+        <div className="flex items-center gap-2.5 mb-1">
+          {companyLogoUrl ? (
+            <div className="relative w-7 h-7 flex-shrink-0">
+              <Image
+                src={companyLogoUrl}
+                alt={companyName}
+                fill
+                className="object-contain"
+                sizes="28px"
+              />
+            </div>
+          ) : null}
+          <span className="text-gradient-hero text-lg font-bold tracking-wide">{companyName}</span>
+        </div>
+        <p className="text-[11px] text-white/30 uppercase tracking-widest">Admin Panel</p>
       </div>
 
       {/* Nav */}

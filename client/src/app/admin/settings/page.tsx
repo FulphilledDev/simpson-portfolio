@@ -20,6 +20,8 @@ interface AdminSettingsDto {
   ownerName: string;
   ownerTitle: string;
   appointmentDurationMinutes: number;
+  companyName: string;
+  companyLogoUrl: string | null;
 }
 
 interface ResumeVersionDto {
@@ -49,6 +51,7 @@ interface SettingsForm {
   skillInput: string;
   skills: string[];
   appointmentDurationMinutes: number;
+  companyName: string;
 }
 
 const EMPTY_FORM: SettingsForm = {
@@ -62,6 +65,7 @@ const EMPTY_FORM: SettingsForm = {
   skillInput: "",
   skills: [],
   appointmentDurationMinutes: 30,
+  companyName: "",
 };
 
 // ── Shared styles ──────────────────────────────────────────────────────────
@@ -144,12 +148,24 @@ function SkillTag({
 
 // ── Photo Upload ───────────────────────────────────────────────────────────
 
-function ProfilePhotoSection({
+function ImageUploadSection({
+  label,
   currentUrl,
+  endpoint,
+  fieldName,
   onUploaded,
+  accept = "image/jpeg,image/png,image/webp",
+  hint = "JPEG, PNG, or WebP · Max 5 MB",
+  shape = "rounded-full",
 }: {
+  label: string;
   currentUrl: string | null;
+  endpoint: string;
+  fieldName: string;
   onUploaded: (url: string) => void;
+  accept?: string;
+  hint?: string;
+  shape?: string;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -158,29 +174,22 @@ function ProfilePhotoSection({
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    const allowed = ["image/jpeg", "image/png", "image/webp"];
-    if (!allowed.includes(file.type)) {
-      setError("Only JPEG, PNG, or WebP accepted.");
-      return;
-    }
     if (file.size > 5 * 1024 * 1024) {
       setError("File must be under 5 MB.");
       return;
     }
-
     setUploading(true);
     setError(null);
     const fd = new FormData();
-    fd.append("photo", file);
-
+    fd.append(fieldName, file);
     try {
-      const result = await apiFetch<{ profilePhotoUrl: string }>("/api/settings/photo", {
+      const result = await apiFetch<Record<string, string>>(endpoint, {
         method: "POST",
         authenticated: true,
         body: fd,
       });
-      onUploaded(result.profilePhotoUrl);
+      const url = result.companyLogoUrl ?? result.profilePhotoUrl ?? "";
+      onUploaded(url);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed.");
     } finally {
@@ -191,47 +200,47 @@ function ProfilePhotoSection({
 
   return (
     <div className="flex items-center gap-5">
-      {/* Avatar */}
-      <div className="w-20 h-20 rounded-full flex-shrink-0 overflow-hidden ring-2 ring-white/[0.08]">
+      <div className={`w-20 h-20 flex-shrink-0 overflow-hidden ring-2 ring-white/[0.08] ${shape}`}>
         {currentUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={currentUrl}
-            alt="Profile photo"
-            className="w-full h-full object-cover"
-          />
+          <img src={currentUrl} alt={label} className="w-full h-full object-contain" />
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-neon-cyan/20 to-neon-purple/20 flex items-center justify-center">
             <svg className="w-8 h-8 text-white/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
           </div>
         )}
       </div>
-
-      {/* Upload controls */}
       <div className="flex flex-col gap-2">
-        <input
-          ref={fileRef}
-          type="file"
-          accept="image/jpeg,image/png,image/webp"
-          className="hidden"
-          onChange={handleFile}
-        />
-        <GlowButton
-          variant="outline-cyan"
-          size="sm"
-          loading={uploading}
-          onClick={() => fileRef.current?.click()}
-          type="button"
-        >
-          {uploading ? "Uploading…" : "Change Photo"}
+        <input ref={fileRef} type="file" accept={accept} className="hidden" onChange={handleFile} />
+        <GlowButton variant="outline-cyan" size="sm" loading={uploading} onClick={() => fileRef.current?.click()} type="button">
+          {uploading ? "Uploading…" : "Change Image"}
         </GlowButton>
-        <p className="text-[11px] text-white/30">JPEG, PNG, or WebP · Max 5 MB</p>
+        <p className="text-[11px] text-white/30">{hint}</p>
         {error && <p className="text-[11px] text-red-400">{error}</p>}
       </div>
     </div>
+  );
+}
+
+function ProfilePhotoSection({
+  currentUrl,
+  onUploaded,
+}: {
+  currentUrl: string | null;
+  onUploaded: (url: string) => void;
+}) {
+  return (
+    <ImageUploadSection
+      label="Profile photo"
+      currentUrl={currentUrl}
+      endpoint="/api/settings/photo"
+      fieldName="photo"
+      onUploaded={onUploaded}
+      shape="rounded-full"
+    />
   );
 }
 
@@ -769,6 +778,7 @@ function GoogleCalendarSection() {
 export default function AdminSettingsPage() {
   const [form, setForm] = useState<SettingsForm>(EMPTY_FORM);
   const [profilePhotoUrl, setProfilePhotoUrl] = useState<string | null>(null);
+  const [companyLogoUrl, setCompanyLogoUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -790,8 +800,10 @@ export default function AdminSettingsPage() {
           skillInput: "",
           skills: Array.isArray(data.skills) ? data.skills : [],
           appointmentDurationMinutes: data.appointmentDurationMinutes ?? 30,
+          companyName: data.companyName ?? "",
         });
         setProfilePhotoUrl(data.profilePhotoUrl ?? null);
+        setCompanyLogoUrl(data.companyLogoUrl ?? null);
       })
       .catch(() => setError("Failed to load settings."))
       .finally(() => setLoading(false));
@@ -850,6 +862,7 @@ export default function AdminSettingsPage() {
           twitterUrl: form.twitterUrl.trim() || null,
           skills: form.skills,
           appointmentDurationMinutes: form.appointmentDurationMinutes,
+          companyName: form.companyName.trim(),
         }),
       });
       setSaved(true);
@@ -886,6 +899,45 @@ export default function AdminSettingsPage() {
       </div>
 
       <form onSubmit={handleSave} className="space-y-6">
+
+        {/* ── Branding ─────────────────────────────────────────────────── */}
+        <GlassCard accent="cyan" padding="lg">
+          <SectionHeader
+            icon={
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                  d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+              </svg>
+            }
+            title="Branding"
+            description="Company name and logo displayed in the navbar and admin sidebar."
+          />
+
+          <div className="space-y-5">
+            <Field label="Company Logo">
+              <ImageUploadSection
+                label="Company logo"
+                currentUrl={companyLogoUrl}
+                endpoint="/api/settings/logo"
+                fieldName="logo"
+                onUploaded={(url) => setCompanyLogoUrl(url)}
+                accept="image/jpeg,image/png,image/webp,image/svg+xml"
+                hint="JPEG, PNG, WebP, or SVG · Max 5 MB"
+                shape="rounded-xl"
+              />
+            </Field>
+
+            <Field label="Company Name" required>
+              <input
+                type="text"
+                value={form.companyName}
+                onChange={(e) => set("companyName", e.target.value)}
+                placeholder="Simpson Software"
+                className={inputCls}
+              />
+            </Field>
+          </div>
+        </GlassCard>
 
         {/* ── Profile ─────────────────────────────────────────────────── */}
         <GlassCard accent="cyan" padding="lg">
