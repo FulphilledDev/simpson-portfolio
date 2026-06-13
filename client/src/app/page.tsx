@@ -3,6 +3,7 @@ import HeroScene from "@/components/ui/HeroScene";
 import GlassCard from "@/components/ui/GlassCard";
 import GlowLink from "@/components/ui/GlowLink";
 import ProjectCard, { Project } from "@/components/ui/ProjectCard";
+import ReviewsSlider from "@/components/ui/ReviewsSlider";
 import Image from "next/image";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5149";
@@ -43,6 +44,27 @@ async function getAdminSettings(): Promise<AdminSettings | null> {
   }
 }
 
+interface PublishedReview {
+  id: number;
+  contactName: string;
+  contactCompany: string | null;
+  projectTitle: string | null;
+  prosContent: string;
+  rating: number;
+}
+
+async function getPublishedReviews(): Promise<PublishedReview[]> {
+  try {
+    const res = await fetch(`${API_URL}/api/reviews`, {
+      next: { revalidate: 60 },
+    });
+    if (!res.ok) return [];
+    return res.json();
+  } catch {
+    return [];
+  }
+}
+
 const CORE_TRAITS = [
   {
     icon: "⚔️",
@@ -67,9 +89,10 @@ const CORE_TRAITS = [
 ];
 
 export default async function HomePage() {
-  const [projects, settings] = await Promise.all([
+  const [projects, settings, reviews] = await Promise.all([
     getFeaturedProjects(),
     getAdminSettings(),
+    getPublishedReviews(),
   ]);
 
   const ownerName = settings?.ownerName ?? "Philip Simpson";
@@ -326,6 +349,21 @@ export default async function HomePage() {
           <GlowLink href="/projects" variant="outline-cyan">View All Projects →</GlowLink>
         </div>
       </section>
+
+      {/* ── Client Reviews ── */}
+      {reviews.length > 0 && (
+        <section className="section-container py-28 space-y-12">
+          <div className="text-center space-y-3">
+            <p className="text-neon-cyan/60 text-xs uppercase tracking-[0.2em] font-medium">Testimonials</p>
+            <h2 className="text-3xl sm:text-4xl font-bold text-white">What Clients Say</h2>
+            <p className="text-white/40 max-w-xl mx-auto">
+              Real feedback from real projects.
+            </p>
+          </div>
+
+          <ReviewsSlider reviews={reviews} />
+        </section>
+      )}
 
       {/* ── CTA ── */}
       <section className="section-container py-24">
