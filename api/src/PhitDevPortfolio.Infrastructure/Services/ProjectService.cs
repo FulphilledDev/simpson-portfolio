@@ -99,9 +99,10 @@ public class ProjectService(
         if (gifStream is not null && gifFileName is not null)
             entity.GifDemoUrl = await UploadFileAsync(gifStream, gifFileName, entity.Slug, "media", ct);
 
-        // Merge: kept existing URLs + newly uploaded
-        var kept = dto.ScreenshotsToKeep?.ToList()
-                   ?? JsonSerializer.Deserialize<List<string>>(entity.Screenshots) ?? [];
+        // Use kept list only when client explicitly sent ScreenshotsChanged; otherwise preserve existing
+        var kept = dto.ScreenshotsChanged
+            ? dto.ScreenshotsToKeep?.ToList() ?? []
+            : JsonSerializer.Deserialize<List<string>>(entity.Screenshots) ?? [];
         if (screenshotFiles is not null)
         {
             foreach (var (stream, name) in screenshotFiles)

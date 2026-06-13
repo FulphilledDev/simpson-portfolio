@@ -40,7 +40,9 @@ public record UpdateProjectDto(
     bool IsFeatured,
     bool IsActive,
     int SortOrder,
-    /// <summary>Existing screenshot URLs to retain (omitted = keep all).</summary>
+    /// <summary>True when the client explicitly set the screenshots list (even to empty).</summary>
+    bool ScreenshotsChanged,
+    /// <summary>Existing screenshot URLs to retain (only used when ScreenshotsChanged is true).</summary>
     IEnumerable<string>? ScreenshotsToKeep
 );
 

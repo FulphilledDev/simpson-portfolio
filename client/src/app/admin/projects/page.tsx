@@ -100,7 +100,8 @@ function buildFormData(form: FormState, isEdit: boolean): FormData {
   fd.append("SortOrder", form.sortOrder || "0");
   if (form.thumbnail) fd.append("thumbnail", form.thumbnail);
   if (form.gifDemo) fd.append("gifDemo", form.gifDemo);
-  // Screenshots: send kept URLs + new files
+  // Screenshots: always send ScreenshotsChanged=true on edits so server knows empty = cleared
+  if (isEdit) fd.append("ScreenshotsChanged", "true");
   form.screenshotsToKeep.forEach((url) => fd.append("ScreenshotsToKeep", url));
   form.newScreenshots.forEach((file) => fd.append("screenshots", file));
   return fd;
