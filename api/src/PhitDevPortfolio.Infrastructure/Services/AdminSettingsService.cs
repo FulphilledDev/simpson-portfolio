@@ -56,7 +56,7 @@ public class AdminSettingsService(
         }
         else
         {
-            url = await blob.UploadAsync(stream, fileName, _azure.ProfileContainerName, ct);
+            url = await blob.UploadAsync(stream, fileName, _azure.ProfileContainerName, isPublic: true, ct);
         }
 
         settings.ProfilePhotoUrl = url;

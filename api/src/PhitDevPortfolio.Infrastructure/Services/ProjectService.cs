@@ -131,7 +131,7 @@ public class ProjectService(
             await stream.CopyToAsync(fs, ct);
             return $"{_azure.LocalDevBaseUrl}/uploads/projects/{unique}";
         }
-        return await blob.UploadAsync(stream, fileName, _azure.ProjectsContainerName, ct);
+        return await blob.UploadAsync(stream, fileName, _azure.ProjectsContainerName, isPublic: true, ct);
     }
 
     private async Task<string> GenerateUniqueSlugAsync(string title, int? excludeId, CancellationToken ct)

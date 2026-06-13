@@ -10,11 +10,12 @@ public class BlobStorageService(IOptions<AzureOptions> options) : IBlobStorageSe
 {
     private readonly string _connectionString = options.Value.BlobStorageConnectionString;
 
-    public async Task<string> UploadAsync(Stream stream, string fileName, string containerName, CancellationToken ct = default)
+    public async Task<string> UploadAsync(Stream stream, string fileName, string containerName, bool isPublic = false, CancellationToken ct = default)
     {
-        var client    = new BlobServiceClient(_connectionString);
-        var container = client.GetBlobContainerClient(containerName);
-        await container.CreateIfNotExistsAsync(PublicAccessType.Blob, cancellationToken: ct);
+        var client      = new BlobServiceClient(_connectionString);
+        var container   = client.GetBlobContainerClient(containerName);
+        var accessType  = isPublic ? PublicAccessType.Blob : PublicAccessType.None;
+        await container.CreateIfNotExistsAsync(accessType, cancellationToken: ct);
 
         var blobName   = $"{Guid.NewGuid():N}_{Path.GetFileName(fileName)}";
         var blobClient = container.GetBlobClient(blobName);
