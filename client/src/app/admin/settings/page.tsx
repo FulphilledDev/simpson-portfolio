@@ -349,49 +349,78 @@ function ResumeManagerSection() {
     }
   }
 
-  return (
-    <div className="space-y-4">
-      {/* Upload zone */}
-      <div
-        role="button"
-        tabIndex={0}
-        onClick={() => !uploading && fileRef.current?.click()}
-        onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && !uploading && fileRef.current?.click()}
-        className={`relative flex flex-col items-center gap-3 rounded-xl border-2 border-dashed px-6 py-8 text-center transition-colors cursor-pointer
-          ${uploading
-            ? "border-neon-cyan/30 bg-neon-cyan/[0.03] cursor-wait"
-            : "border-white/[0.10] hover:border-neon-cyan/40 hover:bg-neon-cyan/[0.02]"
-          }`}
-      >
-        <input
-          ref={fileRef}
-          type="file"
-          accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-          className="hidden"
-          onChange={handleFile}
-        />
+  const hasVersions = versions.length > 0;
 
-        {uploading ? (
-          <svg className="animate-spin w-7 h-7 text-neon-cyan/60" viewBox="0 0 24 24" fill="none">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-          </svg>
-        ) : (
-          <div className="p-3 rounded-full bg-white/[0.04] group-hover:bg-neon-cyan/[0.07] transition-colors">
-            <svg className="w-6 h-6 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  return (
+    <div className="space-y-3">
+      {/* Upload zone — full when empty, compact row when files exist */}
+      <input
+        ref={fileRef}
+        type="file"
+        accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        className="hidden"
+        onChange={handleFile}
+      />
+      {hasVersions ? (
+        /* Compact row */
+        <button
+          type="button"
+          disabled={uploading}
+          onClick={() => fileRef.current?.click()}
+          className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg border border-dashed transition-colors text-left
+            ${uploading
+              ? "border-neon-cyan/30 bg-neon-cyan/[0.03] cursor-wait"
+              : "border-white/[0.10] hover:border-neon-cyan/40 hover:bg-neon-cyan/[0.03]"
+            }`}
+        >
+          {uploading ? (
+            <svg className="animate-spin w-4 h-4 text-neon-cyan/60 flex-shrink-0" viewBox="0 0 24 24" fill="none">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+          ) : (
+            <svg className="w-4 h-4 text-white/30 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
                 d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
             </svg>
+          )}
+          <span className="text-sm text-white/40">{uploading ? "Uploading…" : "Upload another version"}</span>
+          <span className="ml-auto text-[11px] text-white/20">PDF, DOC, DOCX · 30 MB</span>
+        </button>
+      ) : (
+        /* Full drop zone when no files yet */
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => !uploading && fileRef.current?.click()}
+          onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && !uploading && fileRef.current?.click()}
+          className={`relative flex flex-col items-center gap-3 rounded-xl border-2 border-dashed px-6 py-8 text-center transition-colors cursor-pointer
+            ${uploading
+              ? "border-neon-cyan/30 bg-neon-cyan/[0.03] cursor-wait"
+              : "border-white/[0.10] hover:border-neon-cyan/40 hover:bg-neon-cyan/[0.02]"
+            }`}
+        >
+          {uploading ? (
+            <svg className="animate-spin w-7 h-7 text-neon-cyan/60" viewBox="0 0 24 24" fill="none">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+          ) : (
+            <div className="p-3 rounded-full bg-white/[0.04] transition-colors">
+              <svg className="w-6 h-6 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+              </svg>
+            </div>
+          )}
+          <div>
+            <p className="text-sm font-medium text-white/60">
+              {uploading ? "Uploading…" : "Click to upload resume"}
+            </p>
+            <p className="text-[11px] text-white/30 mt-0.5">PDF, DOC, or DOCX · Max 30 MB</p>
           </div>
-        )}
-
-        <div>
-          <p className="text-sm font-medium text-white/60">
-            {uploading ? "Uploading…" : "Click to upload resume"}
-          </p>
-          <p className="text-[11px] text-white/30 mt-0.5">PDF, DOC, or DOCX · Max 30 MB</p>
         </div>
-      </div>
+      )}
 
       {error && <p className="text-sm text-red-400 px-1">{error}</p>}
 
