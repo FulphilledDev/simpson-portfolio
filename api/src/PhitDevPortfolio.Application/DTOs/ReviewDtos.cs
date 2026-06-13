@@ -2,11 +2,15 @@ namespace PhitDevPortfolio.Application.DTOs;
 
 public record ReviewDto(
     int Id,
-    string ReviewerName,
-    string? ReviewerTitle,
-    string? ReviewerCompany,
-    string Content,
-    int Rating,
+    int ContactId,
+    string ContactName,
+    string? ContactTitle,
+    string? ContactCompany,
+    int? ProjectId,
+    string? ProjectTitle,
+    string ProsContent,
+    string ConsContent,
+    decimal Rating,
     DateTimeOffset RequestedAt,
     DateTimeOffset? SubmittedAt,
     bool IsApproved,
@@ -14,24 +18,25 @@ public record ReviewDto(
     int SortOrder
 );
 
+/// <summary>Returned when the reviewer opens their tokenized submission link.</summary>
 public record ReviewSubmitFormDto(
-    string ReviewerName,
-    string? ReviewerTitle,
-    string? ReviewerCompany,
+    string ContactName,
+    string? ContactTitle,
+    string? ContactCompany,
+    string? ProjectTitle,
     bool IsTokenValid
 );
 
+/// <summary>Posted by the reviewer when submitting their review.</summary>
 public record SubmitReviewDto(
-    string ReviewerName,
-    string? ReviewerTitle,
-    string? ReviewerCompany,
-    string Content,
-    int Rating
+    string ProsContent,
+    string ConsContent,
+    decimal Rating
 );
 
+/// <summary>Posted by the admin to request a review from a contact.</summary>
 public record RequestReviewDto(
-    string ReviewerEmail,
-    string ReviewerName,
-    string? ReviewerTitle,
-    string? ReviewerCompany
+    int ContactId,
+    int? ProjectId
 );
+

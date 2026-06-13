@@ -7,6 +7,7 @@ public record AppointmentRequestDto(
     string Name,
     string Email,
     string? Phone,
+    string? CompanyName,
     ProjectType ProjectType,
     string? Budget,
     string Message,
@@ -18,7 +19,8 @@ public record AppointmentRequestDto(
     DateOnly? RequestedDate,
     TimeOnly? RequestedTime,
     DateOnly? ScheduledDate,
-    TimeOnly? ScheduledTime
+    TimeOnly? ScheduledTime,
+    int? SavedContactId
 );
 
 public record ScheduleAppointmentTimeDto(DateOnly Date, TimeOnly Time, int UtcOffsetMinutes = 0);
@@ -27,6 +29,7 @@ public record CreateAppointmentRequestDto(
     string Name,
     string Email,
     string? Phone,
+    string? CompanyName,
     ProjectType ProjectType,
     string? Budget,
     string Message,
