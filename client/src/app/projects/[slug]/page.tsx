@@ -26,7 +26,7 @@ function isVideoUrl(url: string): boolean {
 async function getProject(slug: string): Promise<ProjectDetail | null> {
   try {
     const res = await fetch(`${API_URL}/api/projects/${slug}`, {
-      next: { revalidate: 60 },
+      cache: "no-store",
     });
     if (res.status === 404) return null;
     if (!res.ok) return null;

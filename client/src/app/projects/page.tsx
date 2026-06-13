@@ -6,7 +6,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5149";
 async function getProjects(): Promise<Project[]> {
   try {
     const res = await fetch(`${API_URL}/api/projects`, {
-      next: { revalidate: 60 },
+      cache: "no-store",
     });
     if (!res.ok) return [];
     return res.json();

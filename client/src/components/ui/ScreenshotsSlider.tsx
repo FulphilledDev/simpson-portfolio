@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 
 const PLACEHOLDER_COUNT = 4;
 
@@ -20,7 +21,10 @@ export default function ScreenshotsSlider({
   const isPlaceholder = screenshots.length === 0;
 
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const [mounted, setMounted] = useState(false);
   const touchStartX = useRef<number | null>(null);
+
+  useEffect(() => { setMounted(true); }, []);
 
   const open = (i: number) => setActiveIndex(i);
   const close = () => setActiveIndex(null);
@@ -63,6 +67,7 @@ export default function ScreenshotsSlider({
         {items.map((src, i) => (
           <button
             key={i}
+            type="button"
             onClick={() => open(i)}
             aria-label={`View screenshot ${i + 1}`}
             className="relative flex-none w-[160px] aspect-video rounded-lg overflow-hidden border border-white/[0.08] hover:border-neon-cyan/40 transition-colors duration-200 group bg-black/30"
@@ -106,10 +111,10 @@ export default function ScreenshotsSlider({
         )}
       </div>
 
-      {/* ── Modal ── */}
-      {activeIndex !== null && (
+      {/* ── Modal (portal → document.body to escape any backdrop-filter stacking context) ── */}
+      {mounted && activeIndex !== null ? createPortal(
         <div
-          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-6"
+          className="fixed inset-0 z-[9999] bg-black/85 backdrop-blur-sm flex items-center justify-center p-6"
           onClick={close}
           onTouchStart={(e) => {
             touchStartX.current = e.touches[0].clientX;
@@ -218,7 +223,7 @@ export default function ScreenshotsSlider({
             </div>
           </div>
         </div>
-      )}
+      , document.body) : null}
     </>
   );
 }
