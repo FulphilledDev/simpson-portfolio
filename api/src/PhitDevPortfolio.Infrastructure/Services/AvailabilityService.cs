@@ -56,11 +56,28 @@ public class WeeklyAvailabilityService(AppDbContext db) : IWeeklyAvailabilitySer
             .AsNoTracking()
             .FirstOrDefaultAsync(w => w.DayOfWeek == dayOfWeek && w.IsEnabled, ct);
 
-        if (rule is null)
-            return new DayAvailabilityDto(false, Array.Empty<string>());
-
         var settings = await db.AdminSettings.AsNoTracking().FirstOrDefaultAsync(s => s.Id == 1, ct);
         var durationMinutes = settings?.AppointmentDurationMinutes ?? 30;
+
+        TimeOnly windowStart;
+        TimeOnly windowEnd;
+
+        if (rule is null)
+        {
+            // If any rules are configured, this day is simply unavailable.
+            // If no rules exist at all, treat every day as open (8 AM – 6 PM).
+            var hasAnyRules = await db.WeeklyAvailabilities.AnyAsync(w => w.IsEnabled, ct);
+            if (hasAnyRules)
+                return new DayAvailabilityDto(false, Array.Empty<string>());
+
+            windowStart = new TimeOnly(8, 0);
+            windowEnd   = new TimeOnly(18, 0);
+        }
+        else
+        {
+            windowStart = rule.StartTime;
+            windowEnd   = rule.EndTime;
+        }
 
         var dayStart = new DateTimeOffset(date.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
         var dayEnd   = new DateTimeOffset(date.ToDateTime(TimeOnly.MaxValue), TimeSpan.Zero);
@@ -70,15 +87,14 @@ public class WeeklyAvailabilityService(AppDbContext db) : IWeeklyAvailabilitySer
             .ToListAsync(ct);
 
         var startTimes = new List<string>();
-        var cursor = rule.StartTime;
-        var windowEnd = rule.EndTime.AddMinutes(-durationMinutes);
+        var cursor = windowStart;
+        var lastSlotStart = windowEnd.AddMinutes(-durationMinutes);
 
-        while (cursor <= windowEnd)
+        while (cursor <= lastSlotStart)
         {
             var slotStart = new DateTimeOffset(date.ToDateTime(cursor), TimeSpan.Zero);
             var slotEnd   = slotStart.AddMinutes(durationMinutes);
-            var isBlocked = blocked.Any(b => b.Start < slotEnd && b.End > slotStart);
-            if (isBlocked == false)
+            if (!blocked.Any(b => b.Start < slotEnd && b.End > slotStart))
                 startTimes.Add(cursor.ToString("HH:mm"));
             cursor = cursor.AddMinutes(durationMinutes);
         }
