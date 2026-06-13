@@ -1,5 +1,25 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5149";
 
+/**
+ * Resolves an asset URL so it always points to the correct host.
+ * Dev-mode uploads are stored with the local API base URL (e.g. http://localhost:5149/uploads/...).
+ * In production the NEXT_PUBLIC_API_URL env var is the Azure API, so we swap the origin
+ * so that relative paths and localhost URLs resolve correctly in every environment.
+ */
+export function resolveAssetUrl(url: string | null | undefined): string {
+  if (!url) return "";
+  try {
+    const parsed = new URL(url);
+    if (parsed.hostname === "localhost") {
+      return `${API_URL}${parsed.pathname}${parsed.search}`;
+    }
+  } catch {
+    // relative path
+    if (url.startsWith("/")) return `${API_URL}${url}`;
+  }
+  return url;
+}
+
 function getToken(): string | null {
   if (typeof window === "undefined") return null;
   return localStorage.getItem("phitdev_token") || sessionStorage.getItem("phitdev_token");

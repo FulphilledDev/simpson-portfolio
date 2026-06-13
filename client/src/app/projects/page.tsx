@@ -1,7 +1,7 @@
 import ProjectCard, { type Project } from "@/components/ui/ProjectCard";
 import Link from "next/link";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5149";
 
 async function getProjects(): Promise<Project[]> {
   try {

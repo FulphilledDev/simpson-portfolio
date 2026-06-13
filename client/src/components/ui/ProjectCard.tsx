@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import GlassCard from "./GlassCard";
+import { resolveAssetUrl } from "@/lib/api";
 
 export interface Project {
   id: number;
@@ -12,6 +13,7 @@ export interface Project {
   thumbnailUrl: string;
   liveUrl?: string | null;
   gitHubUrl?: string | null;
+  screenshots: string[];
   isFeatured: boolean;
 }
 
@@ -29,7 +31,7 @@ export default function ProjectCard({ project }: { project: Project }) {
           {project.thumbnailUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={project.thumbnailUrl}
+              src={resolveAssetUrl(project.thumbnailUrl)}
               alt={project.title}
               className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
             />
