@@ -140,6 +140,7 @@ public class ProjectService(
     {
         if (string.IsNullOrEmpty(_azure.BlobStorageConnectionString))
         {
+            logger.LogWarning("ProjectService: BlobStorageConnectionString is empty — falling back to local wwwroot storage. This should NOT happen in production.");
             // DevMode: save to wwwroot/uploads/projects/{slug}/{folder}/
             var dir  = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "projects", slug, folder);
             Directory.CreateDirectory(dir);
