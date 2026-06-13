@@ -10,14 +10,17 @@ public class BlobStorageService(IOptions<AzureOptions> options) : IBlobStorageSe
 {
     private readonly string _connectionString = options.Value.BlobStorageConnectionString;
 
-    public async Task<string> UploadAsync(Stream stream, string fileName, string containerName, bool isPublic = false, CancellationToken ct = default)
+    public async Task<string> UploadAsync(Stream stream, string fileName, string containerName, bool isPublic = false, string? blobFolder = null, CancellationToken ct = default)
     {
         var client      = new BlobServiceClient(_connectionString);
         var container   = client.GetBlobContainerClient(containerName);
         var accessType  = isPublic ? PublicAccessType.Blob : PublicAccessType.None;
         await container.CreateIfNotExistsAsync(accessType, cancellationToken: ct);
 
-        var blobName   = $"{Guid.NewGuid():N}_{Path.GetFileName(fileName)}";
+        var safeName  = $"{Guid.NewGuid():N}_{Path.GetFileName(fileName)}";
+        var blobName  = string.IsNullOrEmpty(blobFolder)
+            ? safeName
+            : $"{blobFolder.Trim('/')}/{safeName}";
         var blobClient = container.GetBlobClient(blobName);
         await blobClient.UploadAsync(stream, overwrite: true, cancellationToken: ct);
         return blobClient.Uri.ToString();
@@ -25,8 +28,7 @@ public class BlobStorageService(IOptions<AzureOptions> options) : IBlobStorageSe
 
     public async Task DeleteAsync(string blobUrl, string containerName, CancellationToken ct = default)
     {
-        var uri       = new Uri(blobUrl);
-        var blobName  = uri.Segments.Last();
+        var blobName  = ExtractBlobName(blobUrl, containerName);
         var client    = new BlobServiceClient(_connectionString);
         var container = client.GetBlobContainerClient(containerName);
         await container.GetBlobClient(blobName).DeleteIfExistsAsync(cancellationToken: ct);
@@ -34,13 +36,27 @@ public class BlobStorageService(IOptions<AzureOptions> options) : IBlobStorageSe
 
     public async Task<Stream> DownloadAsync(string blobUrl, string containerName, CancellationToken ct = default)
     {
-        var uri       = new Uri(blobUrl);
-        var blobName  = uri.Segments.Last();
+        var blobName  = ExtractBlobName(blobUrl, containerName);
         var client    = new BlobServiceClient(_connectionString);
         var container = client.GetBlobContainerClient(containerName);
         var ms        = new MemoryStream();
         await container.GetBlobClient(blobName).DownloadToAsync(ms, ct);
         ms.Position = 0;
         return ms;
+    }
+
+    /// <summary>
+    /// Extracts the blob name (including any virtual folder path) from a full blob URL.
+    /// e.g. https://account.blob.core.windows.net/projects/slug/thumbnails/file.jpg
+    ///      → "slug/thumbnails/file.jpg"
+    /// </summary>
+    private static string ExtractBlobName(string blobUrl, string containerName)
+    {
+        var uri           = new Uri(blobUrl);
+        var containerPath = $"/{containerName}/";
+        var idx           = uri.AbsolutePath.IndexOf(containerPath, StringComparison.Ordinal);
+        return idx >= 0
+            ? Uri.UnescapeDataString(uri.AbsolutePath[(idx + containerPath.Length)..])
+            : uri.Segments.Last();
     }
 }

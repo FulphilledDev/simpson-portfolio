@@ -57,16 +57,16 @@ public class ProjectService(
         };
 
         if (thumbnailStream is not null && thumbnailFileName is not null)
-            entity.ThumbnailUrl = await UploadFileAsync(thumbnailStream, thumbnailFileName, ct);
+            entity.ThumbnailUrl = await UploadFileAsync(thumbnailStream, thumbnailFileName, entity.Slug, "thumbnails", ct);
 
         if (gifStream is not null && gifFileName is not null)
-            entity.GifDemoUrl = await UploadFileAsync(gifStream, gifFileName, ct);
+            entity.GifDemoUrl = await UploadFileAsync(gifStream, gifFileName, entity.Slug, "media", ct);
 
         if (screenshotFiles is not null)
         {
             var urls = new List<string>();
             foreach (var (stream, name) in screenshotFiles)
-                urls.Add(await UploadFileAsync(stream, name, ct));
+                urls.Add(await UploadFileAsync(stream, name, entity.Slug, "screenshots", ct));
             entity.Screenshots = JsonSerializer.Serialize(urls);
         }
 
@@ -94,10 +94,10 @@ public class ProjectService(
         entity.UpdatedAt        = DateTimeOffset.UtcNow;
 
         if (thumbnailStream is not null && thumbnailFileName is not null)
-            entity.ThumbnailUrl = await UploadFileAsync(thumbnailStream, thumbnailFileName, ct);
+            entity.ThumbnailUrl = await UploadFileAsync(thumbnailStream, thumbnailFileName, entity.Slug, "thumbnails", ct);
 
         if (gifStream is not null && gifFileName is not null)
-            entity.GifDemoUrl = await UploadFileAsync(gifStream, gifFileName, ct);
+            entity.GifDemoUrl = await UploadFileAsync(gifStream, gifFileName, entity.Slug, "media", ct);
 
         // Merge: kept existing URLs + newly uploaded
         var kept = dto.ScreenshotsToKeep?.ToList()
@@ -105,7 +105,7 @@ public class ProjectService(
         if (screenshotFiles is not null)
         {
             foreach (var (stream, name) in screenshotFiles)
-                kept.Add(await UploadFileAsync(stream, name, ct));
+                kept.Add(await UploadFileAsync(stream, name, entity.Slug, "screenshots", ct));
         }
         entity.Screenshots = JsonSerializer.Serialize(kept);
 
@@ -136,20 +136,20 @@ public class ProjectService(
 
     // ── Helpers ──────────────────────────────────────────────────────────────
 
-    private async Task<string> UploadFileAsync(Stream stream, string fileName, CancellationToken ct)
+    private async Task<string> UploadFileAsync(Stream stream, string fileName, string slug, string folder, CancellationToken ct)
     {
         if (string.IsNullOrEmpty(_azure.BlobStorageConnectionString))
         {
-            // DevMode: save to wwwroot/uploads/projects/
-            var dir  = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "projects");
+            // DevMode: save to wwwroot/uploads/projects/{slug}/{folder}/
+            var dir  = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "projects", slug, folder);
             Directory.CreateDirectory(dir);
             var unique = $"{Guid.NewGuid():N}_{Path.GetFileName(fileName)}";
             var path   = Path.Combine(dir, unique);
             await using var fs = File.Create(path);
             await stream.CopyToAsync(fs, ct);
-            return $"{_azure.LocalDevBaseUrl}/uploads/projects/{unique}";
+            return $"{_azure.LocalDevBaseUrl}/uploads/projects/{slug}/{folder}/{unique}";
         }
-        return await blob.UploadAsync(stream, fileName, _azure.ProjectsContainerName, isPublic: true, ct);
+        return await blob.UploadAsync(stream, fileName, _azure.ProjectsContainerName, isPublic: true, $"{slug}/{folder}", ct);
     }
 
     private async Task<string> GenerateUniqueSlugAsync(string title, int? excludeId, CancellationToken ct)

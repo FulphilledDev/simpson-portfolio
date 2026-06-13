@@ -56,7 +56,8 @@ public interface IBlobStorageService
     ///   (e.g. project thumbnails, profile photos). Use <c>false</c> (default) for
     ///   private containers whose files are streamed through the API (e.g. resumes).
     /// </param>
-    Task<string> UploadAsync(Stream stream, string fileName, string containerName, bool isPublic = false, CancellationToken ct = default);
+    /// <param name="blobFolder">Optional virtual folder prefix within the container, e.g. "fire-ice-cream/thumbnails".</param>
+    Task<string> UploadAsync(Stream stream, string fileName, string containerName, bool isPublic = false, string? blobFolder = null, CancellationToken ct = default);
     Task DeleteAsync(string blobUrl, string containerName, CancellationToken ct = default);
     Task<Stream> DownloadAsync(string blobUrl, string containerName, CancellationToken ct = default);
 }
