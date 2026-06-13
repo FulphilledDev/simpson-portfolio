@@ -250,14 +250,14 @@ export default function BookPage() {
               <p className="text-sm font-medium text-white/70">
                 Preferred Date &amp; Time <span className="text-neon-cyan">*</span>
               </p>
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="min-w-0 space-y-1.5">
                   <label htmlFor="requestedDate" className="block text-xs text-white/40 uppercase tracking-wider">Date</label>
                   <input id="requestedDate" name="requestedDate" type="date"
                     min={todayStr()} value={form.requestedDate}
-                    onChange={handleDateChange} className="form-input w-full" />
+                    onChange={handleDateChange} className="form-input w-full min-w-0" />
                 </div>
-                <div className="space-y-1.5">
+                <div className="min-w-0 space-y-1.5">
                   <label htmlFor="requestedTime" className="block text-xs text-white/40 uppercase tracking-wider">Time</label>
                   {loadingSlots ? (
                     <div className="form-input w-full text-white/30 text-sm">Loading times…</div>
