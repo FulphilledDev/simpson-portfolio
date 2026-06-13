@@ -84,6 +84,7 @@ builder.Services.AddScoped<IAppointmentService,        AppointmentService>();
 builder.Services.AddScoped<IAppointmentMessageService, AppointmentMessageService>();
 builder.Services.AddScoped<IProjectService,            ProjectService>();
 builder.Services.AddScoped<IReviewService,             ReviewService>();
+builder.Services.AddScoped<IContactService,            ContactService>();
 builder.Services.AddScoped<IWeeklyAvailabilityService,    WeeklyAvailabilityService>();
 builder.Services.AddScoped<IBlockedSlotService,           BlockedSlotService>();
 builder.Services.AddScoped<IGoogleCalendarService,     GoogleCalendarService>();

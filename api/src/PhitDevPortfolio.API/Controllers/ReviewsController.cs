@@ -30,8 +30,15 @@ public class ReviewsController(IReviewService reviews) : ControllerBase
     [HttpPost("request")]
     public async Task<IActionResult> RequestReview([FromBody] RequestReviewDto dto, CancellationToken ct)
     {
-        var result = await reviews.RequestAsync(dto, ct);
-        return Ok(result);
+        try
+        {
+            var result = await reviews.RequestAsync(dto, ct);
+            return Ok(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
     }
 
     // ── Public tokenized submission ───────────────────────────────────────────
@@ -48,8 +55,8 @@ public class ReviewsController(IReviewService reviews) : ControllerBase
     [HttpPost("submit/{token}")]
     public async Task<IActionResult> Submit(string token, [FromBody] SubmitReviewDto dto, CancellationToken ct)
     {
-        if (dto.Rating < 1 || dto.Rating > 5)
-            return BadRequest("Rating must be between 1 and 5.");
+        if (dto.Rating < 0.5m || dto.Rating > 10m || dto.Rating % 0.5m != 0)
+            return BadRequest("Rating must be between 0.5 and 10 in 0.5 increments.");
 
         var result = await reviews.SubmitAsync(token, dto, ct);
         if (result is null) return StatusCode(410, new { message = "This review link has already been used or is invalid." });
