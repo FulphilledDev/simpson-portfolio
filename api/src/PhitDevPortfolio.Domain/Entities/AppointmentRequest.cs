@@ -16,6 +16,15 @@ public class AppointmentRequest
     public DateTimeOffset? RespondedAt { get; set; }
     public string? OwnerNotes { get; set; }
 
+    /// <summary>Optional company name provided by the client at booking time.</summary>
+    public string? CompanyName { get; set; }
+
+    /// <summary>
+    /// If the owner chose "Save as Contact", this references the created Contact record.
+    /// </summary>
+    public int? SavedContactId { get; set; }
+    public Contact? SavedContact { get; set; }
+
     /// <summary>
     /// GUID token issued to the client on submission — used for the public tokenized chat endpoint.
     /// </summary>

@@ -29,4 +29,7 @@ public class Project
     public int SortOrder { get; set; }
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
+
+    /// <summary>Contacts associated with this project (admin-side only).</summary>
+    public ICollection<ProjectContact> ProjectContacts { get; set; } = new List<ProjectContact>();
 }
