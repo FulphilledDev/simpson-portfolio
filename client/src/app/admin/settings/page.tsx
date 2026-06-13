@@ -351,8 +351,18 @@ function ResumeManagerSection() {
 
   return (
     <div className="space-y-4">
-      {/* Upload row */}
-      <div className="flex items-center gap-3">
+      {/* Upload zone */}
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={() => !uploading && fileRef.current?.click()}
+        onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && !uploading && fileRef.current?.click()}
+        className={`relative flex flex-col items-center gap-3 rounded-xl border-2 border-dashed px-6 py-8 text-center transition-colors cursor-pointer
+          ${uploading
+            ? "border-neon-cyan/30 bg-neon-cyan/[0.03] cursor-wait"
+            : "border-white/[0.10] hover:border-neon-cyan/40 hover:bg-neon-cyan/[0.02]"
+          }`}
+      >
         <input
           ref={fileRef}
           type="file"
@@ -360,16 +370,27 @@ function ResumeManagerSection() {
           className="hidden"
           onChange={handleFile}
         />
-        <GlowButton
-          variant="outline-cyan"
-          size="sm"
-          loading={uploading}
-          onClick={() => fileRef.current?.click()}
-          type="button"
-        >
-          {uploading ? "Uploading…" : "Upload Resume"}
-        </GlowButton>
-        <p className="text-[11px] text-white/30">PDF, DOC, or DOCX · Max 30 MB</p>
+
+        {uploading ? (
+          <svg className="animate-spin w-7 h-7 text-neon-cyan/60" viewBox="0 0 24 24" fill="none">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+        ) : (
+          <div className="p-3 rounded-full bg-white/[0.04] group-hover:bg-neon-cyan/[0.07] transition-colors">
+            <svg className="w-6 h-6 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+            </svg>
+          </div>
+        )}
+
+        <div>
+          <p className="text-sm font-medium text-white/60">
+            {uploading ? "Uploading…" : "Click to upload resume"}
+          </p>
+          <p className="text-[11px] text-white/30 mt-0.5">PDF, DOC, or DOCX · Max 30 MB</p>
+        </div>
       </div>
 
       {error && <p className="text-sm text-red-400 px-1">{error}</p>}
@@ -384,7 +405,13 @@ function ResumeManagerSection() {
           Loading versions…
         </div>
       ) : versions.length === 0 ? (
-        <p className="text-sm text-white/30 italic">No resumes uploaded yet.</p>
+        <div className="flex flex-col items-center gap-2 py-3 text-center">
+          <svg className="w-8 h-8 text-white/15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1}
+              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          <p className="text-sm text-white/30">No resumes uploaded yet.</p>
+        </div>
       ) : (
         <div className="space-y-2">
           {versions.map((v) => (
