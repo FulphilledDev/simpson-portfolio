@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Reorder, useDragControls } from "framer-motion";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, resolveAssetUrl } from "@/lib/api";
 import GlassCard from "@/components/ui/GlassCard";
 import GlowButton from "@/components/ui/GlowButton";
 
@@ -533,7 +533,7 @@ function ScreenshotsUploadField({
           {kept.map((url) => (
             <div key={url} className="relative group w-20 h-12 rounded-lg overflow-hidden border border-white/[0.08] bg-black/30">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={url} alt="screenshot" className="w-full h-full object-cover" />
+              <img src={resolveAssetUrl(url)} alt="screenshot" className="w-full h-full object-cover" />
               <button
                 type="button"
                 onClick={() => onRemoveKept(url)}
