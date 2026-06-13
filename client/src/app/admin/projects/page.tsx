@@ -19,6 +19,7 @@ interface ProjectDto {
   gitHubUrl: string | null;
   thumbnailUrl: string;
   gifDemoUrl: string | null;
+  screenshots: string[];
   isFeatured: boolean;
   isActive: boolean;
   sortOrder: number;
@@ -38,6 +39,8 @@ interface FormState {
   sortOrder: string;
   thumbnail: File | null;
   gifDemo: File | null;
+  screenshotsToKeep: string[];   // existing screenshot URLs to retain
+  newScreenshots: File[];        // newly picked screenshot files
 }
 
 const EMPTY_FORM: FormState = {
@@ -52,6 +55,8 @@ const EMPTY_FORM: FormState = {
   sortOrder: "0",
   thumbnail: null,
   gifDemo: null,
+  screenshotsToKeep: [],
+  newScreenshots: [],
 };
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -76,6 +81,8 @@ function toFormState(p: ProjectDto): FormState {
     sortOrder: String(p.sortOrder),
     thumbnail: null,
     gifDemo: null,
+    screenshotsToKeep: p.screenshots ?? [],
+    newScreenshots: [],
   };
 }
 
@@ -93,6 +100,9 @@ function buildFormData(form: FormState, isEdit: boolean): FormData {
   fd.append("SortOrder", form.sortOrder || "0");
   if (form.thumbnail) fd.append("thumbnail", form.thumbnail);
   if (form.gifDemo) fd.append("gifDemo", form.gifDemo);
+  // Screenshots: send kept URLs + new files
+  form.screenshotsToKeep.forEach((url) => fd.append("ScreenshotsToKeep", url));
+  form.newScreenshots.forEach((file) => fd.append("screenshots", file));
   return fd;
 }
 
@@ -346,61 +356,235 @@ const inputCls =
 
 const textareaCls = inputCls + " resize-none";
 
-// ── File input ─────────────────────────────────────────────────────────────
+// ── Media upload field (resume-style drop zone + compact row) ───────────────
 
-function FileInput({
+function MediaUploadField({
   label,
   hint,
   accept,
+  acceptLabel,
   currentUrl,
+  isVideo,
   onChange,
 }: {
   label: string;
   hint?: string;
   accept: string;
+  acceptLabel: string;
   currentUrl?: string | null;
+  isVideo?: boolean;
   onChange: (f: File | null) => void;
 }) {
   const ref = useRef<HTMLInputElement>(null);
-  const [preview, setPreview] = useState<string | null>(null);
+  const [picked, setPicked] = useState<{ file: File; objectUrl: string } | null>(null);
+  const [uploading] = useState(false);
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] ?? null;
-    onChange(file);
+    if (picked) URL.revokeObjectURL(picked.objectUrl);
     if (file) {
-      const url = URL.createObjectURL(file);
-      setPreview(url);
-    } else {
-      setPreview(null);
+      const objectUrl = URL.createObjectURL(file);
+      setPicked({ file, objectUrl });
+      onChange(file);
     }
+    if (e.target) e.target.value = "";
   }
 
-  const displayUrl = preview ?? currentUrl;
+  function clearPicked() {
+    if (picked) URL.revokeObjectURL(picked.objectUrl);
+    setPicked(null);
+    onChange(null);
+  }
+
+  const previewUrl = picked?.objectUrl ?? currentUrl ?? null;
+  const hasFile = !!previewUrl;
+  const isNewPick = !!picked;
 
   return (
     <Field label={label} hint={hint}>
-      <div className="flex items-center gap-3">
-        {displayUrl && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={displayUrl}
-            alt="preview"
-            className="w-16 h-10 object-cover rounded border border-white/[0.08] flex-shrink-0"
-          />
-        )}
+      <input ref={ref} type="file" accept={accept} className="hidden" onChange={handleChange} />
+
+      {hasFile ? (
+        /* ── Compact row (file exists) ── */
+        <div className="flex items-center gap-3 p-3 rounded-xl border border-white/[0.08] bg-white/[0.02]">
+          {/* Preview */}
+          <div className="flex-shrink-0 w-20 h-12 rounded-lg overflow-hidden border border-white/[0.08] bg-black/30">
+            {isVideo && isNewPick ? (
+              /* eslint-disable-next-line jsx-a11y/media-has-caption */
+              <video src={previewUrl} className="w-full h-full object-cover" muted playsInline />
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={previewUrl} alt="preview" className="w-full h-full object-cover" />
+            )}
+          </div>
+
+          {/* Name */}
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-white/80 truncate">
+              {isNewPick ? picked.file.name : "Current file"}
+            </p>
+            {isNewPick && (
+              <p className="text-[11px] text-white/35 mt-0.5">
+                {(picked.file.size / 1024 / 1024).toFixed(1)} MB
+              </p>
+            )}
+            {!isNewPick && (
+              <p className="text-[11px] text-white/30 mt-0.5">Saved · leave empty to keep</p>
+            )}
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center gap-1 flex-shrink-0">
+            {/* Replace */}
+            <button
+              type="button"
+              onClick={() => ref.current?.click()}
+              className="p-1.5 rounded-lg text-white/35 hover:text-neon-cyan hover:bg-neon-cyan/[0.06] transition-colors"
+              title="Replace"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+              </svg>
+            </button>
+            {/* Clear new pick (only hides the new selection; existing URL is kept server-side) */}
+            {isNewPick && (
+              <button
+                type="button"
+                onClick={clearPicked}
+                className="p-1.5 rounded-lg text-white/35 hover:text-red-400 hover:bg-red-500/[0.08] transition-colors"
+                title="Clear new selection"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18 18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+          </div>
+        </div>
+      ) : (
+        /* ── Full drop zone (no file) ── */
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => !uploading && ref.current?.click()}
+          onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && !uploading && ref.current?.click()}
+          className={`relative flex flex-col items-center gap-3 rounded-xl border-2 border-dashed px-6 py-7 text-center transition-colors cursor-pointer
+            ${uploading
+              ? "border-neon-cyan/30 bg-neon-cyan/[0.03] cursor-wait"
+              : "border-white/[0.10] hover:border-neon-cyan/40 hover:bg-neon-cyan/[0.02]"
+            }`}
+        >
+          <div className="p-3 rounded-full bg-white/[0.04]">
+            <svg className="w-5 h-5 text-white/35" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+            </svg>
+          </div>
+          <div>
+            <p className="text-sm font-medium text-white/55">Click to upload</p>
+            <p className="text-[11px] text-white/30 mt-0.5">{acceptLabel}</p>
+          </div>
+        </div>
+      )}
+    </Field>
+  );
+}
+
+// ── Screenshots upload field ────────────────────────────────────────────────
+
+function ScreenshotsUploadField({
+  kept,
+  newFiles,
+  onRemoveKept,
+  onAddNew,
+  onRemoveNew,
+}: {
+  kept: string[];
+  newFiles: File[];
+  onRemoveKept: (url: string) => void;
+  onAddNew: (files: File[]) => void;
+  onRemoveNew: (idx: number) => void;
+}) {
+  const ref = useRef<HTMLInputElement>(null);
+  const newPreviews = newFiles.map((f) => URL.createObjectURL(f));
+  const hasAny = kept.length > 0 || newFiles.length > 0;
+
+  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
+    if (files.length) onAddNew(files);
+    if (e.target) e.target.value = "";
+  }
+
+  return (
+    <Field label="Screenshots" hint="PNG/JPG/WebP · up to 10">
+      <input
+        ref={ref}
+        type="file"
+        accept="image/*"
+        multiple
+        className="hidden"
+        onChange={handleChange}
+      />
+
+      {/* Existing + new thumbs grid */}
+      {hasAny && (
+        <div className="flex flex-wrap gap-2 mb-2">
+          {kept.map((url) => (
+            <div key={url} className="relative group w-20 h-12 rounded-lg overflow-hidden border border-white/[0.08] bg-black/30">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={url} alt="screenshot" className="w-full h-full object-cover" />
+              <button
+                type="button"
+                onClick={() => onRemoveKept(url)}
+                className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity"
+                title="Remove"
+              >
+                <svg className="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18 18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          ))}
+          {newFiles.map((file, i) => (
+            <div key={i} className="relative group w-20 h-12 rounded-lg overflow-hidden border border-neon-cyan/30 bg-black/30">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={newPreviews[i]} alt="new screenshot" className="w-full h-full object-cover" />
+              <div className="absolute top-0.5 left-0.5 bg-neon-cyan/20 rounded px-1 text-[9px] text-neon-cyan font-semibold">NEW</div>
+              <button
+                type="button"
+                onClick={() => onRemoveNew(i)}
+                className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity"
+                title="Remove"
+              >
+                <svg className="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18 18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Add button */}
+      {kept.length + newFiles.length < 10 && (
         <button
           type="button"
           onClick={() => ref.current?.click()}
-          className="flex items-center gap-2 px-3 py-2 rounded-lg border border-white/[0.08] text-white/50 text-sm hover:border-neon-cyan/30 hover:text-neon-cyan/70 transition-colors"
+          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg border border-dashed border-white/[0.10] hover:border-neon-cyan/40 hover:bg-neon-cyan/[0.02] transition-colors text-left"
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          <svg className="w-4 h-4 text-white/30 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
           </svg>
-          {displayUrl ? "Replace file" : "Choose file"}
+          <span className="text-sm text-white/40">
+            {hasAny ? "Add more screenshots" : "Upload screenshots"}
+          </span>
+          <span className="ml-auto text-[11px] text-white/20">
+            {kept.length + newFiles.length}/10 · PNG, JPG, WebP
+          </span>
         </button>
-        <input ref={ref} type="file" accept={accept} className="hidden" onChange={handleChange} />
-      </div>
+      )}
     </Field>
   );
 }
@@ -618,19 +802,37 @@ function ProjectModal({
 
           {/* Files */}
           <div className="space-y-4 pt-1 border-t border-white/[0.06]">
-            <FileInput
+            <MediaUploadField
               label="Thumbnail"
               hint={isEdit ? "Leave empty to keep existing image" : "PNG/JPG/WebP recommended"}
               accept="image/*"
+              acceptLabel="PNG, JPG, WebP · any size"
               currentUrl={isEdit ? project.thumbnailUrl : null}
               onChange={(f) => set("thumbnail", f)}
             />
-            <FileInput
-              label="GIF Demo"
-              hint={isEdit ? "Leave empty to keep existing GIF" : "Animated GIF for demo preview"}
+            <MediaUploadField
+              label="GIF / Video Demo"
+              hint={isEdit ? "Leave empty to keep existing demo" : "Animated GIF or MP4 walkthrough"}
               accept="image/gif,video/*"
+              acceptLabel="GIF or MP4, MOV, WebM"
               currentUrl={isEdit ? project.gifDemoUrl : null}
+              isVideo
               onChange={(f) => set("gifDemo", f)}
+            />
+
+            {/* Screenshots */}
+            <ScreenshotsUploadField
+              kept={form.screenshotsToKeep}
+              newFiles={form.newScreenshots}
+              onRemoveKept={(url) =>
+                set("screenshotsToKeep", form.screenshotsToKeep.filter((u) => u !== url))
+              }
+              onAddNew={(files) =>
+                set("newScreenshots", [...form.newScreenshots, ...files])
+              }
+              onRemoveNew={(idx) =>
+                set("newScreenshots", form.newScreenshots.filter((_, i) => i !== idx))
+              }
             />
           </div>
 
