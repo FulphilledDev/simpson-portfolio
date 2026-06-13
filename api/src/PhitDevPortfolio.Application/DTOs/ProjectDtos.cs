@@ -11,6 +11,7 @@ public record ProjectDto(
     string? GitHubUrl,
     string ThumbnailUrl,
     string? GifDemoUrl,
+    IEnumerable<string> Screenshots,
     bool IsFeatured,
     bool IsActive,
     int SortOrder,
@@ -38,7 +39,9 @@ public record UpdateProjectDto(
     string? GitHubUrl,
     bool IsFeatured,
     bool IsActive,
-    int SortOrder
+    int SortOrder,
+    /// <summary>Existing screenshot URLs to retain (omitted = keep all).</summary>
+    IEnumerable<string>? ScreenshotsToKeep
 );
 
 public record ReorderProjectDto(int Id, int SortOrder);

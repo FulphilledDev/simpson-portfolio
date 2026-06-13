@@ -41,7 +41,7 @@ public class ProjectService(
     }
 
     public async Task<ProjectDto> CreateAsync(CreateProjectDto dto, Stream? thumbnailStream, string? thumbnailFileName,
-        Stream? gifStream, string? gifFileName, CancellationToken ct = default)
+        Stream? gifStream, string? gifFileName, IEnumerable<(Stream Stream, string FileName)>? screenshotFiles, CancellationToken ct = default)
     {
         var entity = new Project
         {
@@ -62,13 +62,21 @@ public class ProjectService(
         if (gifStream is not null && gifFileName is not null)
             entity.GifDemoUrl = await UploadFileAsync(gifStream, gifFileName, ct);
 
+        if (screenshotFiles is not null)
+        {
+            var urls = new List<string>();
+            foreach (var (stream, name) in screenshotFiles)
+                urls.Add(await UploadFileAsync(stream, name, ct));
+            entity.Screenshots = JsonSerializer.Serialize(urls);
+        }
+
         db.Projects.Add(entity);
         await db.SaveChangesAsync(ct);
         return ToDto(entity);
     }
 
     public async Task<ProjectDto?> UpdateAsync(int id, UpdateProjectDto dto, Stream? thumbnailStream, string? thumbnailFileName,
-        Stream? gifStream, string? gifFileName, CancellationToken ct = default)
+        Stream? gifStream, string? gifFileName, IEnumerable<(Stream Stream, string FileName)>? screenshotFiles, CancellationToken ct = default)
     {
         var entity = await db.Projects.FirstOrDefaultAsync(p => p.Id == id, ct);
         if (entity is null) return null;
@@ -90,6 +98,16 @@ public class ProjectService(
 
         if (gifStream is not null && gifFileName is not null)
             entity.GifDemoUrl = await UploadFileAsync(gifStream, gifFileName, ct);
+
+        // Merge: kept existing URLs + newly uploaded
+        var kept = dto.ScreenshotsToKeep?.ToList()
+                   ?? JsonSerializer.Deserialize<List<string>>(entity.Screenshots) ?? [];
+        if (screenshotFiles is not null)
+        {
+            foreach (var (stream, name) in screenshotFiles)
+                kept.Add(await UploadFileAsync(stream, name, ct));
+        }
+        entity.Screenshots = JsonSerializer.Serialize(kept);
 
         await db.SaveChangesAsync(ct);
         return ToDto(entity);
@@ -148,9 +166,12 @@ public class ProjectService(
 
     internal static ProjectDto ToDto(Project p)
     {
-        var techStack = JsonSerializer.Deserialize<IEnumerable<string>>(p.TechStack) ?? [];
+        var techStack   = JsonSerializer.Deserialize<IEnumerable<string>>(p.TechStack)   ?? [];
+        var screenshots = string.IsNullOrWhiteSpace(p.Screenshots)
+            ? []
+            : JsonSerializer.Deserialize<IEnumerable<string>>(p.Screenshots) ?? [];
         return new ProjectDto(p.Id, p.Title, p.Slug, p.ShortDescription, p.LongDescription,
-            techStack, p.LiveUrl, p.GitHubUrl, p.ThumbnailUrl, p.GifDemoUrl,
+            techStack, p.LiveUrl, p.GitHubUrl, p.ThumbnailUrl, p.GifDemoUrl, screenshots,
             p.IsFeatured, p.IsActive, p.SortOrder, p.CreatedAt, p.UpdatedAt);
     }
 }

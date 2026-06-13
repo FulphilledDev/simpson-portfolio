@@ -21,6 +21,9 @@ public class Project
     /// <summary>Optional animated GIF demo hosted in Azure Blob.</summary>
     public string? GifDemoUrl { get; set; }
 
+    /// <summary>JSON array of screenshot URLs, e.g. ["https://...","https://..."]</summary>
+    public string Screenshots { get; set; } = "[]";
+
     public bool IsFeatured { get; set; }
     public bool IsActive { get; set; } = true;
     public int SortOrder { get; set; }

@@ -32,14 +32,18 @@ public class ProjectsController(IProjectService projects) : ControllerBase
     [HttpPost]
     [RequestSizeLimit(50 * 1024 * 1024)] // 50 MB
     public async Task<IActionResult> Create([FromForm] CreateProjectDto dto,
-        IFormFile? thumbnail, IFormFile? gifDemo, CancellationToken ct)
+        IFormFile? thumbnail, IFormFile? gifDemo, [FromForm] List<IFormFile>? screenshots, CancellationToken ct)
     {
         Stream? thumbStream = thumbnail?.OpenReadStream();
         Stream? gifStream   = gifDemo?.OpenReadStream();
+        var screenshotFiles = screenshots?
+            .Select(f => (f.OpenReadStream(), f.FileName))
+            .ToList();
 
         var result = await projects.CreateAsync(dto,
             thumbStream, thumbnail?.FileName,
-            gifStream, gifDemo?.FileName, ct);
+            gifStream, gifDemo?.FileName,
+            screenshotFiles, ct);
 
         return CreatedAtAction(nameof(GetBySlug), new { slug = result.Slug }, result);
     }
@@ -48,14 +52,18 @@ public class ProjectsController(IProjectService projects) : ControllerBase
     [HttpPut("{id:int}")]
     [RequestSizeLimit(50 * 1024 * 1024)]
     public async Task<IActionResult> Update(int id, [FromForm] UpdateProjectDto dto,
-        IFormFile? thumbnail, IFormFile? gifDemo, CancellationToken ct)
+        IFormFile? thumbnail, IFormFile? gifDemo, [FromForm] List<IFormFile>? screenshots, CancellationToken ct)
     {
         Stream? thumbStream = thumbnail?.OpenReadStream();
         Stream? gifStream   = gifDemo?.OpenReadStream();
+        var screenshotFiles = screenshots?
+            .Select(f => (f.OpenReadStream(), f.FileName))
+            .ToList();
 
         var result = await projects.UpdateAsync(id, dto,
             thumbStream, thumbnail?.FileName,
-            gifStream, gifDemo?.FileName, ct);
+            gifStream, gifDemo?.FileName,
+            screenshotFiles, ct);
 
         return result is null ? NotFound() : Ok(result);
     }
