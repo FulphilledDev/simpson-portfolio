@@ -26,6 +26,7 @@ public class AzureOptions
     public string ProjectsContainerName { get; set; } = "projects";
     public string ProfileContainerName { get; set; } = "profile";
     public string ResumesContainerName { get; set; } = "resumes";
+    public string BusinessContainerName { get; set; } = "business";
     public string LocalDevBaseUrl { get; set; } = "http://localhost:5000";
 }
 

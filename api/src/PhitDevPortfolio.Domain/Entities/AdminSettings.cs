@@ -20,6 +20,9 @@ public class AdminSettings
     public string OwnerName { get; set; } = string.Empty;
     public string OwnerTitle { get; set; } = string.Empty;
 
+    public string CompanyName { get; set; } = string.Empty;
+    public string? CompanyLogoUrl { get; set; }
+
     /// <summary>Default appointment duration in minutes (used when creating Google Calendar events).</summary>
     public int AppointmentDurationMinutes { get; set; } = 30;
 }

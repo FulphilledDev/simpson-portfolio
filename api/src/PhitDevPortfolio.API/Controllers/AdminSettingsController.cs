@@ -33,6 +33,19 @@ public class AdminSettingsController(
         return Ok(result);
     }
 
+    [Authorize]
+    [HttpPost("logo")]
+    [RequestSizeLimit(5 * 1024 * 1024)] // 5 MB
+    public async Task<IActionResult> UploadLogo(IFormFile? logo, CancellationToken ct)
+    {
+        if (logo is null || logo.Length == 0) return BadRequest("No file provided.");
+        var allowed = new[] { "image/jpeg", "image/png", "image/webp", "image/svg+xml" };
+        if (!allowed.Contains(logo.ContentType)) return BadRequest("Only JPEG, PNG, WebP, or SVG accepted.");
+
+        var result = await settingsService.UpdateCompanyLogoAsync(logo.OpenReadStream(), logo.FileName, logo.ContentType, ct);
+        return Ok(result);
+    }
+
     // ── Resume version endpoints ──────────────────────────────────────────────
 
     [Authorize]

@@ -11,7 +11,9 @@ public record AdminSettingsDto(
     string? ProfilePhotoUrl,
     string OwnerName,
     string OwnerTitle,
-    int AppointmentDurationMinutes
+    int AppointmentDurationMinutes,
+    string CompanyName,
+    string? CompanyLogoUrl
 );
 
 public record UpdateAdminSettingsDto(
@@ -23,7 +25,8 @@ public record UpdateAdminSettingsDto(
     string? TwitterUrl,
     string OwnerName,
     string OwnerTitle,
-    int AppointmentDurationMinutes
+    int AppointmentDurationMinutes,
+    string CompanyName
 );
 
 /// <summary>A single uploaded resume file returned to the client.</summary>

@@ -33,6 +33,7 @@ public class AdminSettingsService(
         settings.TwitterUrl   = dto.TwitterUrl;
         settings.OwnerName    = dto.OwnerName;
         settings.OwnerTitle   = dto.OwnerTitle;
+        settings.CompanyName  = dto.CompanyName;
         settings.AppointmentDurationMinutes = dto.AppointmentDurationMinutes;
         await db.SaveChangesAsync(ct);
         return ToDto(settings);
@@ -64,6 +65,31 @@ public class AdminSettingsService(
         return ToDto(settings);
     }
 
+    public async Task<AdminSettingsDto> UpdateCompanyLogoAsync(Stream stream, string fileName, string contentType, CancellationToken ct = default)
+    {
+        var settings = await GetOrCreateAsync(ct);
+        string url;
+
+        if (string.IsNullOrEmpty(_azure.BlobStorageConnectionString))
+        {
+            var dir    = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "business");
+            Directory.CreateDirectory(dir);
+            var unique = $"logo_{Guid.NewGuid():N}{Path.GetExtension(fileName)}";
+            var path   = Path.Combine(dir, unique);
+            await using var fs = File.Create(path);
+            await stream.CopyToAsync(fs, ct);
+            url = $"{_azure.LocalDevBaseUrl}/uploads/business/{unique}";
+        }
+        else
+        {
+            url = await blob.UploadAsync(stream, fileName, _azure.BusinessContainerName, isPublic: true, ct: ct);
+        }
+
+        settings.CompanyLogoUrl = url;
+        await db.SaveChangesAsync(ct);
+        return ToDto(settings);
+    }
+
     private async Task<AdminSettings> GetOrCreateAsync(CancellationToken ct)
     {
         var settings = await db.AdminSettings.FirstOrDefaultAsync(s => s.Id == 1, ct);
@@ -80,6 +106,6 @@ public class AdminSettingsService(
         var skills = JsonSerializer.Deserialize<IEnumerable<string>>(s.Skills) ?? [];
         return new AdminSettingsDto(s.Bio, skills, s.ContactEmail, s.LinkedInUrl,
             s.GitHubUrl, s.TwitterUrl, s.ResumeUrl, s.ProfilePhotoUrl, s.OwnerName, s.OwnerTitle,
-            s.AppointmentDurationMinutes);
+            s.AppointmentDurationMinutes, s.CompanyName, s.CompanyLogoUrl);
     }
 }

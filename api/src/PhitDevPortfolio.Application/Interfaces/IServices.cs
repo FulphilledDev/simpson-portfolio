@@ -7,6 +7,7 @@ public interface IAdminSettingsService
     Task<AdminSettingsDto> GetAsync(CancellationToken ct = default);
     Task<AdminSettingsDto> UpdateAsync(UpdateAdminSettingsDto dto, CancellationToken ct = default);
     Task<AdminSettingsDto> UpdateProfilePhotoAsync(Stream stream, string fileName, string contentType, CancellationToken ct = default);
+    Task<AdminSettingsDto> UpdateCompanyLogoAsync(Stream stream, string fileName, string contentType, CancellationToken ct = default);
 }
 
 public interface IResumeVersionService
