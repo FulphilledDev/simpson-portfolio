@@ -41,7 +41,7 @@ public class ResumeVersionService(
         }
         else
         {
-            url = await blob.UploadAsync(stream, fileName, _azure.ResumesContainerName, isPublic: false, ct);
+            url = await blob.UploadAsync(stream, fileName, _azure.ResumesContainerName, isPublic: false, ct: ct);
         }
 
         var version = new ResumeVersion
