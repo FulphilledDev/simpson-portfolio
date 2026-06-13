@@ -270,7 +270,7 @@ dotnet ef database update --project src/PhitDevPortfolio.Infrastructure --startu
 - Repo: `https://github.com/FulphilledDev/simpson-portfolio`
 - Root directory: `client`
 - Env vars: `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_GOOGLE_CLIENT_ID`
-- Production URL: `https://phitdev.vercel.app` (configured in CORS + Google OAuth)
+- Production URL: `https://www.simpsonsoftware.site` (custom domain) / `https://simpson-portfolio.vercel.app` (Vercel default)
 
 ### Azure App Service (api)
 - Resource group: `simpson-software-rg`
@@ -280,7 +280,7 @@ dotnet ef database update --project src/PhitDevPortfolio.Infrastructure --startu
 - All secrets go in **Environment variables** (double-underscore for nested keys, e.g. `Google__ClientId`)
 
 ### Google Cloud Console OAuth
-- Authorized JavaScript origins: `http://localhost:3000`, `https://phitdev.vercel.app`
+- Authorized JavaScript origins: `http://localhost:3000`, `https://www.simpsonsoftware.site`, `https://simpson-portfolio.vercel.app`
 - Authorized redirect URIs: `http://localhost:5149/api/googlecalendar/callback`, `https://simpson-software-api-f3cqdsfpedapacbp.westus2-01.azurewebsites.net/api/googlecalendar/callback`
 
 ---
