@@ -15,6 +15,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Review> Reviews => Set<Review>();
     public DbSet<AdminSettings> AdminSettings => Set<AdminSettings>();
     public DbSet<ResumeVersion> ResumeVersions => Set<ResumeVersion>();
+    public DbSet<AboutSection> AboutSections => Set<AboutSection>();
+    public DbSet<AboutAsset> AboutAssets => Set<AboutAsset>();
     public DbSet<GoogleCalendarConnection> GoogleCalendarConnections => Set<GoogleCalendarConnection>();
 
     protected override void OnModelCreating(ModelBuilder builder)

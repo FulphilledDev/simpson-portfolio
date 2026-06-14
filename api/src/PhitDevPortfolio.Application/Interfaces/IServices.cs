@@ -50,6 +50,24 @@ public interface IEmailService
     Task SendResumeAsync(string toEmail, string toName, string fileName, byte[] fileBytes, CancellationToken ct = default);
 }
 
+public interface IAboutSectionService
+{
+    Task<AboutSectionDto> GetAsync(CancellationToken ct = default);
+    Task<AboutSectionDto> UpdateAsync(UpdateAboutSectionDto dto, CancellationToken ct = default);
+    Task<AboutSectionDto> SetAboutPhotoAsync(string? photoUrl, CancellationToken ct = default);
+}
+
+public interface IAboutAssetService
+{
+    Task<IEnumerable<AboutAssetDto>> GetAllAsync(CancellationToken ct = default);
+    Task<AboutAssetDto> UploadAsync(Stream stream, string fileName, string contentType, CancellationToken ct = default);
+    Task DeleteAsync(int id, CancellationToken ct = default);
+    /// <summary>Sets the asset URL as AdminSettings.ProfilePhotoUrl.</summary>
+    Task SetAsProfilePhotoAsync(int id, CancellationToken ct = default);
+    /// <summary>Sets the asset URL as AboutSection.AboutPhotoUrl.</summary>
+    Task SetAsAboutPhotoAsync(int id, CancellationToken ct = default);
+}
+
 public interface IBlobStorageService
 {
     /// <param name="isPublic">

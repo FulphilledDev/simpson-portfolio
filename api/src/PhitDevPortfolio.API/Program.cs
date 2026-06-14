@@ -88,6 +88,8 @@ builder.Services.AddScoped<IContactService,            ContactService>();
 builder.Services.AddScoped<IWeeklyAvailabilityService,    WeeklyAvailabilityService>();
 builder.Services.AddScoped<IBlockedSlotService,           BlockedSlotService>();
 builder.Services.AddScoped<IGoogleCalendarService,     GoogleCalendarService>();
+builder.Services.AddScoped<IAboutSectionService,       AboutSectionService>();
+builder.Services.AddScoped<IAboutAssetService,         AboutSectionService>();
 
 // ── Swagger ───────────────────────────────────────────────────────────────────
 builder.Services.AddEndpointsApiExplorer();
