@@ -247,37 +247,48 @@ function ContactDetailPanel({
           <p className="text-[12px] text-white/40 mt-0.5 truncate">{contact.email}</p>
         </div>
 
-        <div className="flex items-center gap-2 flex-shrink-0">
-          {!editing && (
-            <button
-              onClick={() => { setEditing(true); setError(null); }}
-              className="px-3 py-1.5 rounded-lg text-xs font-medium border border-white/[0.10] text-white/50 hover:text-white/90 hover:border-white/20 transition-colors"
-            >
-              Edit
-            </button>
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          {!editing && !confirmDelete && (
+            <>
+              {/* Edit icon */}
+              <button
+                onClick={() => { setEditing(true); setError(null); }}
+                title="Edit contact"
+                className="w-8 h-8 flex items-center justify-center rounded-lg text-white/40 hover:text-white/90 hover:bg-white/[0.06] border border-transparent hover:border-white/[0.10] transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+              </button>
+              {/* Delete icon */}
+              <button
+                onClick={() => setConfirmDelete(true)}
+                title="Delete contact"
+                className="w-8 h-8 flex items-center justify-center rounded-lg text-red-400/40 hover:text-red-400 hover:bg-red-500/[0.08] border border-transparent hover:border-red-500/20 transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+            </>
           )}
-          {!confirmDelete ? (
-            <button
-              onClick={() => setConfirmDelete(true)}
-              className="px-3 py-1.5 rounded-lg text-xs font-medium border border-red-500/20 text-red-400/60 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/[0.06] transition-colors"
-            >
-              Delete
-            </button>
-          ) : (
+          {confirmDelete && (
             <div className="flex items-center gap-1.5">
-              <span className="text-[11px] text-white/40">Sure?</span>
+              <span className="text-[11px] text-white/40">Delete?</span>
               <button
                 onClick={handleDelete}
                 disabled={deleting}
-                className="px-3 py-1.5 rounded-lg text-xs font-medium bg-red-500/15 border border-red-500/30 text-red-400 hover:bg-red-500/25 disabled:opacity-50 transition-colors"
+                className="px-2.5 py-1.5 rounded-lg text-[11px] font-medium bg-red-500/15 border border-red-500/30 text-red-400 hover:bg-red-500/25 disabled:opacity-50 transition-colors"
               >
-                {deleting ? "…" : "Yes, delete"}
+                {deleting ? "…" : "Yes"}
               </button>
               <button
                 onClick={() => setConfirmDelete(false)}
-                className="px-3 py-1.5 rounded-lg text-xs font-medium border border-white/[0.08] text-white/40 hover:text-white/70 transition-colors"
+                className="px-2.5 py-1.5 rounded-lg text-[11px] font-medium border border-white/[0.08] text-white/40 hover:text-white/70 transition-colors"
               >
-                Cancel
+                No
               </button>
             </div>
           )}
@@ -381,28 +392,31 @@ function ContactDetailPanel({
             {/* Info grid */}
             <div className="border border-white/[0.08] rounded-xl p-4 bg-white/[0.02] space-y-3">
               <p className="text-[10px] font-semibold text-white/40 uppercase tracking-wider">Contact Info</p>
-              <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+              <div className="space-y-3">
+                {/* Email — full width so long addresses don't get cut off */}
                 <div>
                   <p className="text-[10px] text-white/30 uppercase tracking-wider mb-0.5">Email</p>
-                  <a href={`mailto:${contact.email}`} className="text-sm text-neon-cyan/70 hover:text-neon-cyan transition-colors truncate block">
+                  <a href={`mailto:${contact.email}`} className="text-sm text-neon-cyan/70 hover:text-neon-cyan transition-colors break-all">
                     {contact.email}
                   </a>
                 </div>
-                {contact.phone && (
+                <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+                  {contact.phone && (
+                    <div>
+                      <p className="text-[10px] text-white/30 uppercase tracking-wider mb-0.5">Phone</p>
+                      <p className="text-sm text-white/70">{contact.phone}</p>
+                    </div>
+                  )}
+                  {contact.company && (
+                    <div>
+                      <p className="text-[10px] text-white/30 uppercase tracking-wider mb-0.5">Company</p>
+                      <p className="text-sm text-white/70">{contact.company}</p>
+                    </div>
+                  )}
                   <div>
-                    <p className="text-[10px] text-white/30 uppercase tracking-wider mb-0.5">Phone</p>
-                    <p className="text-sm text-white/70">{contact.phone}</p>
+                    <p className="text-[10px] text-white/30 uppercase tracking-wider mb-0.5">Added</p>
+                    <p className="text-sm text-white/70">{formatDate(contact.createdAt)}</p>
                   </div>
-                )}
-                {contact.company && (
-                  <div>
-                    <p className="text-[10px] text-white/30 uppercase tracking-wider mb-0.5">Company</p>
-                    <p className="text-sm text-white/70">{contact.company}</p>
-                  </div>
-                )}
-                <div>
-                  <p className="text-[10px] text-white/30 uppercase tracking-wider mb-0.5">Added</p>
-                  <p className="text-sm text-white/70">{formatDate(contact.createdAt)}</p>
                 </div>
               </div>
 
