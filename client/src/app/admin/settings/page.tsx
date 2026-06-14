@@ -947,7 +947,7 @@ function AboutSectionManager({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 min-w-0 w-full">
 
       {/* Header field */}
       <Field label="Section Headline" hint='Displayed as the "About Me" heading. Leave blank to use the default.'>
@@ -1042,7 +1042,7 @@ function AboutSectionManager({
       </div>
 
       {/* Assets gallery */}
-      <div className="space-y-3 pt-4 border-t border-white/[0.06]">
+      <div className="space-y-3 pt-4 border-t border-white/[0.06] min-w-0 w-full">
         <div className="flex items-center justify-between">
           <label className="text-xs font-semibold text-white/50 uppercase tracking-wider">
             Photo Assets
@@ -1066,10 +1066,10 @@ function AboutSectionManager({
           <p className="text-sm text-white/25 italic">No assets uploaded yet.</p>
         ) : (
           <>
-            {/* Filmstrip — overflow-x-auto, so NO absolute children inside */}
+            {/* Filmstrip — w-full + min-w-0 constrains it inside the card so it scrolls rather than expanding */}
             <div
-              className="flex gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden"
-              style={{ scrollbarWidth: "none" }}
+              className="w-full min-w-0 flex gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden snap-x snap-mandatory touch-pan-x"
+              style={{ scrollbarWidth: "none", WebkitOverflowScrolling: "touch", overscrollBehaviorX: "contain" }}
             >
               {assets.map((asset) => {
                 const resolvedUrl = resolveAssetUrl(asset.url);
@@ -1081,7 +1081,8 @@ function AboutSectionManager({
                     key={asset.id}
                     type="button"
                     onClick={() => setActiveAsset(isActive ? null : asset.id)}
-                    className={`relative flex-none w-[140px] aspect-[4/3] rounded-xl overflow-hidden border-2 transition-all duration-200 ${
+                    style={{ touchAction: "pan-y" }}
+                    className={`relative flex-none w-[110px] aspect-[4/3] rounded-xl overflow-hidden border-2 transition-all duration-200 snap-start ${
                       isActive
                         ? "border-neon-cyan/70 ring-1 ring-neon-cyan/30"
                         : isProfile || isAbout
