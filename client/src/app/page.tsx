@@ -53,6 +53,30 @@ interface PublishedReview {
   rating: number;
 }
 
+interface Principle {
+  icon: string;
+  name: string;
+  description: string;
+}
+
+interface AboutSection {
+  header: string | null;
+  principles: Principle[];
+  aboutPhotoUrl: string | null;
+}
+
+async function getAboutSection(): Promise<AboutSection | null> {
+  try {
+    const res = await fetch(`${API_URL}/api/about`, {
+      next: { revalidate: 60 },
+    });
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
+  }
+}
+
 async function getPublishedReviews(): Promise<PublishedReview[]> {
   try {
     const res = await fetch(`${API_URL}/api/reviews`, {
@@ -89,10 +113,11 @@ const CORE_TRAITS = [
 ];
 
 export default async function HomePage() {
-  const [projects, settings, reviews] = await Promise.all([
+  const [projects, settings, reviews, aboutSection] = await Promise.all([
     getFeaturedProjects(),
     getAdminSettings(),
     getPublishedReviews(),
+    getAboutSection(),
   ]);
 
   const ownerName = settings?.ownerName ?? "Philip Simpson";
@@ -104,6 +129,12 @@ export default async function HomePage() {
     "I build clean, scalable systems that solve real problems. Specializing in .NET, React, and modern cloud architecture — I bring the same relentless discipline to code that others bring to elite training. No shortcuts. No excuses. Just results.";
   const profilePhotoUrl = settings?.profilePhotoUrl;
   const skills = settings?.skills ?? [];
+  const aboutPhotoUrl = aboutSection?.aboutPhotoUrl ?? profilePhotoUrl;
+  const aboutHeader = aboutSection?.header ?? null;
+  const principles: Principle[] =
+    aboutSection?.principles && aboutSection.principles.length > 0
+      ? aboutSection.principles
+      : CORE_TRAITS.map((t) => ({ icon: t.icon, name: t.label, description: t.desc }));
 
   return (
     <main className="bg-background min-h-screen">
@@ -201,9 +232,9 @@ export default async function HomePage() {
                 className="relative w-64 sm:w-80 aspect-[3/4] rounded-2xl overflow-hidden border border-white/[0.08]"
                 style={{ boxShadow: "0 0 60px rgba(0,245,255,0.08), 0 24px 48px rgba(0,0,0,0.5)" }}
               >
-                {profilePhotoUrl ? (
+                {aboutPhotoUrl ? (
                   <Image
-                    src={profilePhotoUrl}
+                    src={aboutPhotoUrl}
                     alt={ownerName}
                     fill
                     className="object-cover"
@@ -273,8 +304,14 @@ export default async function HomePage() {
                 </div>
               </div>
               <h2 className="text-3xl sm:text-4xl font-bold leading-tight text-white">
-                Forged in <span className="text-gradient-hero">Challenge</span>.{" "}
-                <span className="text-white/80">Built for Results.</span>
+                {aboutHeader ? (
+                  <span className="text-white">{aboutHeader}</span>
+                ) : (
+                  <>
+                    Forged in <span className="text-gradient-hero">Challenge</span>.{" "}
+                    <span className="text-white/80">Built for Results.</span>
+                  </>
+                )}
               </h2>
             </div>
 
@@ -282,16 +319,16 @@ export default async function HomePage() {
 
             {/* Core traits grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {CORE_TRAITS.map((trait) => (
+              {principles.map((p) => (
                 <div
-                  key={trait.label}
+                  key={p.name}
                   className="glass rounded-xl p-4 border-l-2 border-neon-cyan/30 space-y-1.5 hover:border-neon-cyan/60 transition-colors duration-300"
                 >
                   <div className="flex items-center gap-2">
-                    <span className="text-base">{trait.icon}</span>
-                    <span className="text-sm font-semibold text-white/90">{trait.label}</span>
+                    <span className="text-base">{p.icon}</span>
+                    <span className="text-sm font-semibold text-white/90">{p.name}</span>
                   </div>
-                  <p className="text-xs text-white/40 leading-relaxed">{trait.desc}</p>
+                  <p className="text-xs text-white/40 leading-relaxed">{p.description}</p>
                 </div>
               ))}
             </div>
