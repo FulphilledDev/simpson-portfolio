@@ -773,6 +773,380 @@ function GoogleCalendarSection() {
   );
 }
 
+// ── About Section Manager ─────────────────────────────────────────────────
+
+interface PrincipleItem { icon: string; name: string; description: string; }
+
+interface AboutSectionData {
+  header: string | null;
+  principles: PrincipleItem[];
+  aboutPhotoUrl: string | null;
+}
+
+interface AboutAssetItem {
+  id: number;
+  url: string;
+  fileName: string;
+  uploadedAt: string;
+}
+
+function AboutSectionManager({
+  parentProfilePhotoUrl,
+  onProfilePhotoChanged,
+}: {
+  parentProfilePhotoUrl: string | null;
+  onProfilePhotoChanged: (url: string | null) => void;
+}) {
+  const [header,        setHeader]        = useState("");
+  const [principles,    setPrinciples]    = useState<PrincipleItem[]>([]);
+  const [aboutPhotoUrl, setAboutPhotoUrl] = useState<string | null>(null);
+  const [assets,        setAssets]        = useState<AboutAssetItem[]>([]);
+
+  const [loading,    setLoading]    = useState(true);
+  const [saving,     setSaving]     = useState(false);
+  const [saved,      setSaved]      = useState(false);
+  const [error,      setError]      = useState<string | null>(null);
+  const [uploading,  setUploading]  = useState(false);
+  const [uploadErr,  setUploadErr]  = useState<string | null>(null);
+  const [activeAsset, setActiveAsset] = useState<number | null>(null);
+
+  // Add / edit principle form
+  const emptyPrinciple = { icon: "", name: "", description: "" };
+  const [addForm,    setAddForm]    = useState<PrincipleItem>(emptyPrinciple);
+  const [editIndex,  setEditIndex]  = useState<number | null>(null);
+
+  const assetFileRef = useRef<HTMLInputElement>(null);
+  const popupRef     = useRef<HTMLDivElement>(null);
+
+  const loadData = useCallback(async () => {
+    try {
+      const [about, assetList] = await Promise.all([
+        apiFetch<AboutSectionData>("/api/about"),
+        apiFetch<AboutAssetItem[]>("/api/about/assets", { authenticated: true }),
+      ]);
+      setHeader(about.header ?? "");
+      setPrinciples(about.principles ?? []);
+      setAboutPhotoUrl(about.aboutPhotoUrl ?? null);
+      setAssets(assetList);
+    } catch {
+      setError("Failed to load about section.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { loadData(); }, [loadData]);
+
+  // Close popup on outside click
+  useEffect(() => {
+    if (activeAsset === null) return;
+    function handleClick(e: MouseEvent) {
+      if (popupRef.current && !popupRef.current.contains(e.target as Node)) {
+        setActiveAsset(null);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [activeAsset]);
+
+  async function handleSave() {
+    setSaving(true);
+    setError(null);
+    setSaved(false);
+    try {
+      const result = await apiFetch<AboutSectionData>("/api/about", {
+        method: "PUT",
+        authenticated: true,
+        body: JSON.stringify({ header: header.trim() || null, principles }),
+      });
+      setHeader(result.header ?? "");
+      setPrinciples(result.principles ?? []);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function commitPrinciple() {
+    if (!addForm.name.trim()) return;
+    if (editIndex !== null) {
+      setPrinciples((prev) => prev.map((p, i) => (i === editIndex ? { ...addForm } : p)));
+      setEditIndex(null);
+    } else {
+      setPrinciples((prev) => [...prev, { ...addForm }]);
+    }
+    setAddForm(emptyPrinciple);
+  }
+
+  function startEdit(index: number) {
+    setAddForm({ ...principles[index] });
+    setEditIndex(index);
+  }
+
+  function cancelEdit() {
+    setAddForm(emptyPrinciple);
+    setEditIndex(null);
+  }
+
+  function removePrinciple(index: number) {
+    setPrinciples((prev) => prev.filter((_, i) => i !== index));
+    if (editIndex === index) cancelEdit();
+  }
+
+  async function handleAssetUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) { setUploadErr("File must be under 10 MB."); return; }
+    setUploading(true);
+    setUploadErr(null);
+    const fd = new FormData();
+    fd.append("file", file);
+    try {
+      const asset = await apiFetch<AboutAssetItem>("/api/about/assets", {
+        method: "POST",
+        authenticated: true,
+        body: fd,
+      });
+      setAssets((prev) => [asset, ...prev]);
+    } catch (err) {
+      setUploadErr(err instanceof Error ? err.message : "Upload failed.");
+    } finally {
+      setUploading(false);
+      if (assetFileRef.current) assetFileRef.current.value = "";
+    }
+  }
+
+  async function handleSetProfile(assetId: number, assetUrl: string) {
+    try {
+      await apiFetch(`/api/about/assets/${assetId}/set-profile`, { method: "PUT", authenticated: true });
+      onProfilePhotoChanged(assetUrl);
+      setActiveAsset(null);
+    } catch { setError("Failed to set profile photo."); }
+  }
+
+  async function handleSetAbout(assetId: number, assetUrl: string) {
+    try {
+      await apiFetch(`/api/about/assets/${assetId}/set-about`, { method: "PUT", authenticated: true });
+      setAboutPhotoUrl(assetUrl);
+      setActiveAsset(null);
+    } catch { setError("Failed to set about photo."); }
+  }
+
+  async function handleDeleteAsset(assetId: number) {
+    if (!confirm("Delete this image? This cannot be undone.")) return;
+    const deletedAsset = assets.find((a) => a.id === assetId);
+    try {
+      await apiFetch(`/api/about/assets/${assetId}`, { method: "DELETE", authenticated: true });
+      setAssets((prev) => prev.filter((a) => a.id !== assetId));
+      if (deletedAsset?.url === aboutPhotoUrl) setAboutPhotoUrl(null);
+      if (deletedAsset?.url === parentProfilePhotoUrl) onProfilePhotoChanged(null);
+      setActiveAsset(null);
+    } catch { setError("Failed to delete asset."); }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center gap-2 text-sm text-white/40 py-2">
+        <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+        </svg>
+        Loading…
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+
+      {/* Header field */}
+      <Field label="Section Headline" hint='Displayed as the "About Me" heading. Leave blank to use the default.'>
+        <input
+          type="text"
+          value={header}
+          onChange={(e) => setHeader(e.target.value)}
+          placeholder='e.g. Forged in Challenge. Built for Results.'
+          className={inputCls}
+        />
+      </Field>
+
+      {/* Principles */}
+      <div className="space-y-3">
+        <label className="text-xs font-semibold text-white/50 uppercase tracking-wider block">
+          Principles <span className="text-white/25 font-normal normal-case tracking-normal">({principles.length})</span>
+        </label>
+
+        {principles.length > 0 && (
+          <div className="space-y-2">
+            {principles.map((p, i) => (
+              <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-white/[0.03] border border-white/[0.06]">
+                <span className="text-xl mt-0.5 flex-shrink-0 w-7 text-center">{p.icon || "·"}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-white/85 truncate">{p.name}</p>
+                  <p className="text-xs text-white/40 mt-0.5 line-clamp-2">{p.description}</p>
+                </div>
+                <div className="flex gap-1 flex-shrink-0">
+                  <button type="button" onClick={() => startEdit(i)}
+                    className="p-1.5 text-white/25 hover:text-neon-cyan transition-colors rounded" title="Edit">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                  </button>
+                  <button type="button" onClick={() => removePrinciple(i)}
+                    className="p-1.5 text-white/25 hover:text-red-400 transition-colors rounded" title="Remove">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Add / Edit form */}
+        <div className="p-3 rounded-lg border border-neon-cyan/15 bg-neon-cyan/[0.02] space-y-3">
+          <p className="text-[10px] font-semibold text-neon-cyan/50 uppercase tracking-widest">
+            {editIndex !== null ? "Edit Principle" : "Add Principle"}
+          </p>
+          <div className="flex gap-2">
+            <input type="text" value={addForm.icon}
+              onChange={(e) => setAddForm((f) => ({ ...f, icon: e.target.value }))}
+              placeholder="🎯" maxLength={4}
+              className={`${inputCls} w-14 text-center text-lg px-1`} />
+            <input type="text" value={addForm.name}
+              onChange={(e) => setAddForm((f) => ({ ...f, name: e.target.value }))}
+              placeholder="Principle name"
+              className={`${inputCls} flex-1`} />
+          </div>
+          <textarea value={addForm.description}
+            onChange={(e) => setAddForm((f) => ({ ...f, description: e.target.value }))}
+            placeholder="Short description…" rows={2}
+            className={`${inputCls} resize-none`} />
+          <div className="flex gap-2 justify-end">
+            {editIndex !== null && (
+              <GlowButton type="button" variant="ghost" size="sm" onClick={cancelEdit}>Cancel</GlowButton>
+            )}
+            <GlowButton type="button" variant="outline-cyan" size="sm" onClick={commitPrinciple}>
+              {editIndex !== null ? "Update" : "Add"}
+            </GlowButton>
+          </div>
+        </div>
+      </div>
+
+      {/* Save button */}
+      <div className="flex items-center gap-3">
+        <GlowButton type="button" variant="cyan" size="sm" loading={saving} onClick={handleSave}>
+          Save About Section
+        </GlowButton>
+        {saved && (
+          <span className="text-sm text-neon-cyan flex items-center gap-1.5">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+            Saved!
+          </span>
+        )}
+        {error && <span className="text-sm text-red-400">{error}</span>}
+      </div>
+
+      {/* Assets gallery */}
+      <div className="space-y-3 pt-4 border-t border-white/[0.06]">
+        <div className="flex items-center justify-between">
+          <label className="text-xs font-semibold text-white/50 uppercase tracking-wider">
+            Photo Assets
+          </label>
+          <div>
+            <input ref={assetFileRef} type="file" accept="image/jpeg,image/png,image/webp"
+              className="hidden" onChange={handleAssetUpload} />
+            <GlowButton type="button" variant="outline-cyan" size="sm" loading={uploading}
+              onClick={() => assetFileRef.current?.click()}>
+              {uploading ? "Uploading…" : "Upload Image"}
+            </GlowButton>
+          </div>
+        </div>
+        {uploadErr && <p className="text-[11px] text-red-400">{uploadErr}</p>}
+        <p className="text-[11px] text-white/25">
+          Click any image to assign it as your{" "}
+          <span className="text-neon-cyan/60">Hero photo</span> or{" "}
+          <span className="text-neon-purple/60">About Me photo</span>, or delete it.
+          JPEG, PNG, WebP · 10 MB max.
+        </p>
+
+        {assets.length === 0 ? (
+          <p className="text-sm text-white/25 italic">No assets uploaded yet.</p>
+        ) : (
+          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+            {assets.map((asset) => {
+              const isProfile = asset.url === parentProfilePhotoUrl;
+              const isAbout   = asset.url === aboutPhotoUrl;
+              return (
+                <div key={asset.id} className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setActiveAsset(activeAsset === asset.id ? null : asset.id)}
+                    className={`relative w-full aspect-square rounded-xl overflow-hidden border-2 transition-all duration-200 ${
+                      activeAsset === asset.id
+                        ? "border-neon-cyan/70 ring-1 ring-neon-cyan/30"
+                        : isProfile || isAbout
+                        ? "border-white/20"
+                        : "border-white/[0.06] hover:border-white/20"
+                    }`}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={asset.url} alt={asset.fileName} className="w-full h-full object-cover" />
+                    {(isProfile || isAbout) && (
+                      <div className="absolute top-1 left-1 flex flex-col gap-0.5">
+                        {isProfile && (
+                          <span className="text-[8px] font-bold uppercase tracking-wide px-1 py-0.5 rounded bg-neon-cyan text-background leading-none">Hero</span>
+                        )}
+                        {isAbout && (
+                          <span className="text-[8px] font-bold uppercase tracking-wide px-1 py-0.5 rounded bg-neon-purple text-white leading-none">About</span>
+                        )}
+                      </div>
+                    )}
+                  </button>
+
+                  {activeAsset === asset.id && (
+                    <div
+                      ref={popupRef}
+                      className="absolute top-full left-0 mt-1 z-50 glass rounded-xl border border-white/[0.12] shadow-xl py-1 min-w-[170px]"
+                    >
+                      <button type="button" onClick={() => handleSetProfile(asset.id, asset.url)}
+                        className="w-full text-left px-3 py-2 text-xs text-white/65 hover:text-neon-cyan hover:bg-neon-cyan/[0.06] transition-colors flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-neon-cyan flex-shrink-0" />
+                        Set as Profile (Hero)
+                      </button>
+                      <button type="button" onClick={() => handleSetAbout(asset.id, asset.url)}
+                        className="w-full text-left px-3 py-2 text-xs text-white/65 hover:text-neon-purple hover:bg-neon-purple/[0.06] transition-colors flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-neon-purple flex-shrink-0" />
+                        Set as About Me Photo
+                      </button>
+                      <div className="border-t border-white/[0.06] my-1" />
+                      <button type="button" onClick={() => handleDeleteAsset(asset.id)}
+                        className="w-full text-left px-3 py-2 text-xs text-white/40 hover:text-red-400 hover:bg-red-400/[0.05] transition-colors flex items-center gap-2">
+                        <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        Delete
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Main Page ──────────────────────────────────────────────────────────────
 
 export default function AdminSettingsPage() {
@@ -1016,58 +1390,22 @@ export default function AdminSettingsPage() {
           </div>
         </GlassCard>
 
-        {/* ── Skills ──────────────────────────────────────────────────── */}
-        <GlassCard accent="purple" padding="lg">
+        {/* ── About Me ─────────────────────────────────────────────────── */}
+        <GlassCard accent="cyan" padding="lg">
           <SectionHeader
             icon={
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-                  d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                  d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             }
-            title="Skills"
-            description="Technologies and tools shown on your portfolio."
+            title="About Me"
+            description="Headline, principles, and photos shown in the About Me section."
           />
-
-          <div className="space-y-4">
-            {/* Tag input */}
-            <Field label="Add Skill" hint="Press Enter or comma to add">
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={form.skillInput}
-                  onChange={(e) => set("skillInput", e.target.value)}
-                  onKeyDown={handleSkillKeyDown}
-                  placeholder="e.g. React, .NET, PostgreSQL"
-                  className={`${inputCls} flex-1`}
-                />
-                <GlowButton
-                  type="button"
-                  variant="outline-cyan"
-                  size="sm"
-                  onClick={addSkill}
-                  className="flex-shrink-0"
-                >
-                  Add
-                </GlowButton>
-              </div>
-            </Field>
-
-            {/* Tags list */}
-            {form.skills.length > 0 ? (
-              <div className="flex flex-wrap gap-2">
-                {form.skills.map((skill) => (
-                  <SkillTag
-                    key={skill}
-                    skill={skill}
-                    onRemove={() => removeSkill(skill)}
-                  />
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-white/30 italic">No skills added yet.</p>
-            )}
-          </div>
+          <AboutSectionManager
+            parentProfilePhotoUrl={profilePhotoUrl}
+            onProfilePhotoChanged={(url) => setProfilePhotoUrl(url)}
+          />
         </GlassCard>
 
         {/* ── Social Links ─────────────────────────────────────────────── */}
@@ -1138,6 +1476,60 @@ export default function AdminSettingsPage() {
                 </div>
               </Field>
             </div>
+          </div>
+        </GlassCard>
+
+        {/* ── Skills ──────────────────────────────────────────────────── */}
+        <GlassCard accent="purple" padding="lg">
+          <SectionHeader
+            icon={
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                  d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+              </svg>
+            }
+            title="Skills"
+            description="Technologies and tools shown on your portfolio."
+          />
+
+          <div className="space-y-4">
+            {/* Tag input */}
+            <Field label="Add Skill" hint="Press Enter or comma to add">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={form.skillInput}
+                  onChange={(e) => set("skillInput", e.target.value)}
+                  onKeyDown={handleSkillKeyDown}
+                  placeholder="e.g. React, .NET, PostgreSQL"
+                  className={`${inputCls} flex-1`}
+                />
+                <GlowButton
+                  type="button"
+                  variant="outline-cyan"
+                  size="sm"
+                  onClick={addSkill}
+                  className="flex-shrink-0"
+                >
+                  Add
+                </GlowButton>
+              </div>
+            </Field>
+
+            {/* Tags list */}
+            {form.skills.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {form.skills.map((skill) => (
+                  <SkillTag
+                    key={skill}
+                    skill={skill}
+                    onRemove={() => removeSkill(skill)}
+                  />
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-white/30 italic">No skills added yet.</p>
+            )}
           </div>
         </GlassCard>
 
