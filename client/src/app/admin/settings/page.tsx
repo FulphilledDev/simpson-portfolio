@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, resolveAssetUrl } from "@/lib/api";
 import GlassCard from "@/components/ui/GlassCard";
 import GlowButton from "@/components/ui/GlowButton";
 
@@ -815,8 +815,7 @@ function AboutSectionManager({
   const [addForm,    setAddForm]    = useState<PrincipleItem>(emptyPrinciple);
   const [editIndex,  setEditIndex]  = useState<number | null>(null);
 
-  const assetFileRef = useRef<HTMLInputElement>(null);
-  const popupRef     = useRef<HTMLDivElement>(null);
+  const assetFileRef   = useRef<HTMLInputElement>(null);
 
   const loadData = useCallback(async () => {
     try {
@@ -836,18 +835,6 @@ function AboutSectionManager({
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
-
-  // Close popup on outside click
-  useEffect(() => {
-    if (activeAsset === null) return;
-    function handleClick(e: MouseEvent) {
-      if (popupRef.current && !popupRef.current.contains(e.target as Node)) {
-        setActiveAsset(null);
-      }
-    }
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, [activeAsset]);
 
   async function handleSave() {
     setSaving(true);
@@ -1071,26 +1058,31 @@ function AboutSectionManager({
         </div>
         {uploadErr && <p className="text-[11px] text-red-400">{uploadErr}</p>}
         <p className="text-[11px] text-white/25">
-          Click any image to assign it as your{" "}
-          <span className="text-neon-cyan/60">Hero photo</span> or{" "}
-          <span className="text-neon-purple/60">About Me photo</span>, or delete it.
+          Click any image to select it, then use the actions below to assign or delete it.
           JPEG, PNG, WebP · 10 MB max.
         </p>
 
         {assets.length === 0 ? (
           <p className="text-sm text-white/25 italic">No assets uploaded yet.</p>
         ) : (
-          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-            {assets.map((asset) => {
-              const isProfile = asset.url === parentProfilePhotoUrl;
-              const isAbout   = asset.url === aboutPhotoUrl;
-              return (
-                <div key={asset.id} className="relative">
+          <>
+            {/* Filmstrip — overflow-x-auto, so NO absolute children inside */}
+            <div
+              className="flex gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden"
+              style={{ scrollbarWidth: "none" }}
+            >
+              {assets.map((asset) => {
+                const resolvedUrl = resolveAssetUrl(asset.url);
+                const isProfile = asset.url === parentProfilePhotoUrl;
+                const isAbout   = asset.url === aboutPhotoUrl;
+                const isActive  = activeAsset === asset.id;
+                return (
                   <button
+                    key={asset.id}
                     type="button"
-                    onClick={() => setActiveAsset(activeAsset === asset.id ? null : asset.id)}
-                    className={`relative w-full aspect-square rounded-xl overflow-hidden border-2 transition-all duration-200 ${
-                      activeAsset === asset.id
+                    onClick={() => setActiveAsset(isActive ? null : asset.id)}
+                    className={`relative flex-none w-[140px] aspect-[4/3] rounded-xl overflow-hidden border-2 transition-all duration-200 ${
+                      isActive
                         ? "border-neon-cyan/70 ring-1 ring-neon-cyan/30"
                         : isProfile || isAbout
                         ? "border-white/20"
@@ -1098,7 +1090,7 @@ function AboutSectionManager({
                     }`}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={asset.url} alt={asset.fileName} className="w-full h-full object-cover" />
+                    <img src={resolvedUrl} alt={asset.fileName} className="w-full h-full object-cover" />
                     {(isProfile || isAbout) && (
                       <div className="absolute top-1 left-1 flex flex-col gap-0.5">
                         {isProfile && (
@@ -1110,37 +1102,47 @@ function AboutSectionManager({
                       </div>
                     )}
                   </button>
+                );
+              })}
+            </div>
 
-                  {activeAsset === asset.id && (
-                    <div
-                      ref={popupRef}
-                      className="absolute top-full left-0 mt-1 z-50 glass rounded-xl border border-white/[0.12] shadow-xl py-1 min-w-[170px]"
-                    >
-                      <button type="button" onClick={() => handleSetProfile(asset.id, asset.url)}
-                        className="w-full text-left px-3 py-2 text-xs text-white/65 hover:text-neon-cyan hover:bg-neon-cyan/[0.06] transition-colors flex items-center gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-neon-cyan flex-shrink-0" />
-                        Set as Profile (Hero)
-                      </button>
-                      <button type="button" onClick={() => handleSetAbout(asset.id, asset.url)}
-                        className="w-full text-left px-3 py-2 text-xs text-white/65 hover:text-neon-purple hover:bg-neon-purple/[0.06] transition-colors flex items-center gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-neon-purple flex-shrink-0" />
-                        Set as About Me Photo
-                      </button>
-                      <div className="border-t border-white/[0.06] my-1" />
-                      <button type="button" onClick={() => handleDeleteAsset(asset.id)}
-                        className="w-full text-left px-3 py-2 text-xs text-white/40 hover:text-red-400 hover:bg-red-400/[0.05] transition-colors flex items-center gap-2">
-                        <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                        Delete
-                      </button>
-                    </div>
-                  )}
+            {/* Action panel — rendered OUTSIDE the overflow container */}
+            {activeAsset !== null && (() => {
+              const asset = assets.find((a) => a.id === activeAsset);
+              if (!asset) return null;
+              const resolvedUrl = resolveAssetUrl(asset.url);
+              return (
+                <div className="flex items-center gap-2 p-3 rounded-xl bg-white/[0.03] border border-neon-cyan/20">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={resolvedUrl} alt={asset.fileName}
+                    className="w-12 h-10 object-cover rounded-lg flex-shrink-0 border border-white/10" />
+                  <p className="text-xs text-white/50 flex-1 truncate min-w-0">{asset.fileName}</p>
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <button type="button" onClick={() => handleSetProfile(asset.id, asset.url)}
+                      title="Set as Profile (Hero)"
+                      className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-medium text-neon-cyan bg-neon-cyan/10 hover:bg-neon-cyan/20 border border-neon-cyan/20 transition-colors">
+                      <span className="w-1.5 h-1.5 rounded-full bg-neon-cyan flex-shrink-0" />
+                      Hero
+                    </button>
+                    <button type="button" onClick={() => handleSetAbout(asset.id, asset.url)}
+                      title="Set as About Me photo"
+                      className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-medium text-neon-purple bg-neon-purple/10 hover:bg-neon-purple/20 border border-neon-purple/20 transition-colors">
+                      <span className="w-1.5 h-1.5 rounded-full bg-neon-purple flex-shrink-0" />
+                      About
+                    </button>
+                    <button type="button" onClick={() => handleDeleteAsset(asset.id)}
+                      title="Delete asset"
+                      className="p-1.5 rounded-lg text-white/30 hover:text-red-400 hover:bg-red-400/[0.08] border border-white/[0.06] hover:border-red-400/20 transition-colors">
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
               );
-            })}
-          </div>
+            })()}
+          </>
         )}
       </div>
     </div>
