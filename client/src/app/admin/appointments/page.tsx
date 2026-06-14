@@ -35,6 +35,7 @@ interface AppointmentDetail {
   requestedTime: string | null; // "HH:MM:SS"
   scheduledDate: string | null; // "YYYY-MM-DD"
   scheduledTime: string | null; // "HH:MM:SS"
+  savedContactId: number | null;
 }
 
 interface Message {
@@ -462,9 +463,28 @@ function AppointmentDetailPanel({
   const [loading, setLoading] = useState(true);
   const [messageText, setMessageText] = useState("");
   const [sending, setSending] = useState(false);
+  const [savingContact, setSavingContact] = useState(false);
+  const [saveContactError, setSaveContactError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const latestMessageIdRef = useRef<number>(0);
+
+  async function handleSaveAsContact() {
+    if (!appointment) return;
+    setSavingContact(true);
+    setSaveContactError(null);
+    try {
+      await apiFetch(`/api/contacts/from-appointment/${appointment.id}`, {
+        method: "POST",
+        authenticated: true,
+      });
+      setAppointment((prev) => prev ? { ...prev, savedContactId: -1 } : prev);
+    } catch (e) {
+      setSaveContactError(e instanceof Error ? e.message : "Failed to save contact");
+    } finally {
+      setSavingContact(false);
+    }
+  }
 
   // Merge incoming messages (dedup by id, preserving order)
   function mergeMessages(prev: Message[], incoming: Message[]): Message[] {
@@ -723,6 +743,43 @@ function AppointmentDetailPanel({
               }}
             />
           )}
+
+          {/* Save as Contact */}
+          <div className="flex items-center gap-2 pt-1 pb-1">
+            {appointment.savedContactId ? (
+              <div className="flex items-center gap-2 text-[11px] text-neon-cyan/60">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                Saved as contact
+                <a href="/admin/contacts" className="underline underline-offset-2 hover:text-neon-cyan transition-colors">View →</a>
+              </div>
+            ) : (
+              <>
+                <button
+                  onClick={handleSaveAsContact}
+                  disabled={savingContact}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium border border-white/[0.10] text-white/50 hover:border-neon-cyan/30 hover:text-neon-cyan/80 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200"
+                >
+                  {savingContact ? (
+                    <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                  ) : (
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                        d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                    </svg>
+                  )}
+                  Save as Contact
+                </button>
+                {saveContactError && (
+                  <span className="text-[11px] text-red-400">{saveContactError}</span>
+                )}
+              </>
+            )}
+          </div>
 
           {/* Client chat link */}
           <div className="flex items-center gap-2 pt-1">
