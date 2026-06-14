@@ -31,6 +31,8 @@ interface AppointmentDetail {
   respondedAt: string | null;
   ownerNotes: string | null;
   clientToken: string;
+  requestedDate: string | null; // "YYYY-MM-DD"
+  requestedTime: string | null; // "HH:MM:SS"
   scheduledDate: string | null; // "YYYY-MM-DD"
   scheduledTime: string | null; // "HH:MM:SS"
 }
@@ -76,6 +78,23 @@ function formatTime(iso: string) {
     hour: "numeric",
     minute: "2-digit",
   });
+}
+
+/** Format a DateOnly string "YYYY-MM-DD" for display */
+function formatDateOnly(d: string) {
+  return new Date(d + "T00:00:00").toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+/** Format a TimeOnly string "HH:MM:SS" for display */
+function formatTimeOnly(t: string) {
+  const [h, m] = t.split(":").map(Number);
+  const d = new Date();
+  d.setHours(h, m, 0, 0);
+  return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
 }
 
 function formatScheduled(date: string, time: string) {
@@ -243,18 +262,18 @@ function ScheduleTimePanel({
 
   return (
     <div className="border border-white/[0.08] rounded-xl p-4 bg-white/[0.02] space-y-3">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-[11px] font-semibold text-white/40 uppercase tracking-wider">
           {hasExisting ? "Update Appointment Time" : "Add Appointment Time"}
         </p>
         {hasExisting && (
-          <span className="text-[11px] text-neon-cyan/60 bg-neon-cyan/[0.06] border border-neon-cyan/20 rounded px-2 py-0.5">
+          <span className="text-[11px] text-neon-cyan/60 bg-neon-cyan/[0.06] border border-neon-cyan/20 rounded px-2 py-1 self-start sm:self-auto">
             Scheduled: {formatScheduled(appointment.scheduledDate!, appointment.scheduledTime!)}
           </span>
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         <div>
           <label className="block text-[10px] text-white/30 uppercase tracking-wider mb-1">
             Date
@@ -636,6 +655,17 @@ function AppointmentDetailPanel({
                 <p className="text-sm text-white/70">{appointment.budget}</p>
               </div>
             )}
+            {appointment.requestedDate && (
+              <div>
+                <p className="text-[10px] text-white/30 uppercase tracking-wider mb-0.5">Requested Date</p>
+                <p className="text-sm text-white/70">
+                  {formatDateOnly(appointment.requestedDate)}
+                  {appointment.requestedTime && (
+                    <span className="ml-1.5 text-white/50">@ {formatTimeOnly(appointment.requestedTime)}</span>
+                  )}
+                </p>
+              </div>
+            )}
             <div>
               <p className="text-[10px] text-white/30 uppercase tracking-wider mb-0.5">Submitted</p>
               <p className="text-sm text-white/70">{formatDate(appointment.submittedAt)}</p>
@@ -655,8 +685,10 @@ function AppointmentDetailPanel({
             <p className="text-[10px] text-white/30 uppercase tracking-wider mb-1.5">
               Request Message
             </p>
-            <div className="text-sm text-white/70 leading-relaxed whitespace-pre-wrap bg-white/[0.02] border border-white/[0.06] rounded-lg p-3">
-              {appointment.message}
+            <div className="text-sm leading-relaxed whitespace-pre-wrap bg-white/[0.02] border border-white/[0.06] rounded-lg p-3">
+              {appointment.message
+                ? <span className="text-white/70">{appointment.message}</span>
+                : <span className="text-white/30 italic">(None)</span>}
             </div>
           </div>
 
