@@ -20,9 +20,7 @@ body {
   background: var(--background);
   font-family: var(--font-geist-sans, system-ui, sans-serif);
   -webkit-font-smoothing: antialiased;
-  /* overflow-x: clip instead of hidden — clip does NOT create a scroll container,
-     so iOS Safari doesn't intercept touch events on nested overflow-x: auto children */
-  overflow-x: clip;
+  overflow-x: hidden;
 }
 
 /* Scrollbar */
